@@ -3,85 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>মেস ম্যানেজমেন্ট সিস্টেম - SaaS V2</title>
+    <title>মেস ম্যানেজমেন্ট সিস্টেম - Premium Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: { 
-                    colors: { darkBg: '#0f172a', darkCard: '#1e293b', darkBorder: '#334155' } 
+                    fontFamily: { sans: ['"Hind Siliguri"', 'sans-serif'] },
+                    colors: { darkBg: '#0b1120', darkCard: '#151e32', darkBorder: '#1e293b' } 
                 }
             }
         }
     </script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent; }
-        .fade-in { animation: fadeIn 0.3s ease-in-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        body { -webkit-tap-highlight-color: transparent; }
+        .glass-panel { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.3); }
+        .dark .glass-panel { background: rgba(21, 30, 50, 0.85); border: 1px solid rgba(255, 255, 255, 0.05); }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        .glass-nav { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-        /* Mobile responsive height fixing */
+        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .toast-enter { animation: toastIn 0.3s ease-out forwards; }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+        /* 100% Mobile Responsive Height Fixing */
         .content-height { height: calc(100vh - 8rem); }
-        @media (min-width: 768px) { .content-height { height: calc(100vh - 4.5rem); } }
+        @media (min-width: 768px) { .content-height { height: calc(100vh - 5rem); } }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-darkBg text-slate-800 dark:text-slate-100 transition-colors duration-300 flex flex-col h-screen overflow-hidden">
 
-    <header class="w-full glass-nav bg-white/80 dark:bg-darkBg/80 border-b border-slate-200 dark:border-darkBorder px-4 py-3 z-40 shrink-0">
+    <!-- Top Header (Glassmorphism) -->
+    <header class="w-full glass-panel z-40 shrink-0 border-b border-slate-200 dark:border-darkBorder px-4 py-3">
         <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex justify-center items-center shadow-lg">
-                    <i data-lucide="home" class="text-white w-6 h-6"></i>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex justify-center items-center shadow-lg shadow-indigo-500/30 text-white">
+                    <i data-lucide="home" class="w-6 h-6"></i>
                 </div>
-                <h1 class="text-xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">মেস ম্যানেজার</h1>
+                <div>
+                    <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">মেস ম্যানেজার</h1>
+                </div>
             </div>
             <div class="flex items-center gap-3">
-                <button id="themeToggle" class="p-2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-yellow-400">
+                <button id="themeToggle" class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-yellow-400 hover:scale-110 transition-transform">
                     <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
                     <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
                 </button>
-                <button id="adminBtn" class="flex items-center gap-1 text-sm font-semibold text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/50">
+                <button id="adminBtn" class="flex items-center gap-1 text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1.5 rounded-lg transition-colors border border-indigo-100 dark:border-indigo-500/20">
                     <i data-lucide="key" class="w-4 h-4"></i> <span id="adminBtnText">এডমিন</span>
                 </button>
             </div>
         </div>
     </header>
 
-    <div id="main-scroll-container" class="flex-1 overflow-y-auto content-height p-4 hide-scrollbar">
-        <main id="app-content" class="max-w-5xl mx-auto pb-8 fade-in"></main>
+    <!-- Main Content Box (Scrollable without overlapping) -->
+    <div id="main-scroll-container" class="flex-1 overflow-y-auto content-height p-4 md:p-6 hide-scrollbar relative">
+        <main id="app-content" class="max-w-5xl mx-auto pb-6 fade-in"></main>
     </div>
 
-    <nav class="w-full glass-nav bg-white/90 dark:bg-darkBg/90 border-t border-slate-200 dark:border-darkBorder z-40 shrink-0 sticky bottom-0">
+    <!-- Bottom Fixed Navigation (Premium Design) -->
+    <nav class="w-full glass-panel z-40 shrink-0 sticky bottom-0 border-t border-slate-200 dark:border-darkBorder pb-safe">
         <div class="max-w-5xl mx-auto flex justify-around items-center h-16 px-2">
-            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-blue-500" data-tab="routine">
-                <i data-lucide="calendar-days" class="w-5 h-5 md:w-6 md:h-6"></i>
+            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-indigo-600 dark:text-indigo-400 transition-colors" data-tab="routine">
+                <i data-lucide="calendar-days" class="w-6 h-6"></i>
                 <span class="text-[10px] font-bold">রুটিন</span>
             </button>
-            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500" data-tab="finance">
-                <i data-lucide="users" class="w-5 h-5 md:w-6 md:h-6"></i>
+            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500 transition-colors" data-tab="finance">
+                <i data-lucide="users" class="w-5 h-5"></i>
                 <span class="text-[10px] font-bold">সদস্য</span>
             </button>
-            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500" data-tab="expense">
-                <i data-lucide="shopping-cart" class="w-5 h-5 md:w-6 md:h-6"></i>
+            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500 transition-colors" data-tab="expense">
+                <i data-lucide="shopping-cart" class="w-5 h-5"></i>
                 <span class="text-[10px] font-bold">খরচ</span>
             </button>
-            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500" data-tab="overview">
-                <i data-lucide="pie-chart" class="w-5 h-5 md:w-6 md:h-6"></i>
+            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500 transition-colors" data-tab="overview">
+                <i data-lucide="pie-chart" class="w-5 h-5"></i>
                 <span class="text-[10px] font-bold">হিসাব</span>
             </button>
         </div>
     </nav>
 
-    <div id="modalContainer" class="fixed inset-0 bg-black/60 z-50 hidden flex justify-center items-center px-4 backdrop-blur-sm"></div>
+    <!-- Popup Modal -->
+    <div id="modalContainer" class="fixed inset-0 bg-slate-900/60 dark:bg-black/60 z-50 hidden flex justify-center items-center px-4 backdrop-blur-sm transition-opacity"></div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="fixed top-20 right-4 z-[60] flex flex-col gap-2 pointer-events-none"></div>
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/+esm';
 
-        // Vercel ENV Variables Setup
+        // ENV Variables
         let envTgToken = import.meta.env?.VITE_TG_TOKEN || '';
         let envTgChatId = import.meta.env?.VITE_TG_CHAT_ID || '';
         let envAdminPass = import.meta.env?.VITE_ADMIN_PASS || 'admin123';
@@ -89,12 +103,8 @@
         let supabaseKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || '';
 
         const CONFIG = {
-            TG_TOKEN: envTgToken, 
-            TG_CHAT_ID: envTgChatId, 
-            ADMIN_PASS: envAdminPass, 
-            MONTHLY_FEE: 5000,
-            REBATE_PER_DAY: 50,
-            MIN_ABSENT_DAYS_FOR_REBATE: 3,
+            TG_TOKEN: envTgToken, TG_CHAT_ID: envTgChatId, ADMIN_PASS: envAdminPass,
+            MONTHLY_FEE: 5000, REBATE_PER_DAY: 50, MIN_ABSENT_DAYS_FOR_REBATE: 3,
             MEMBERS: ['রাহাত', 'ওসমান', 'জিসান', 'মিরাজ', 'নাবিল', 'তামিম', 'সোয়াইব', 'ইমন'],
             ROUTINE: [
                 { id: '1', day: 'শনিবার', b: 'আলু ভর্তা', l: 'ডিম', d: 'সবজি' },
@@ -110,7 +120,7 @@
         const days = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
         let activeTab = 'routine';
         let isAdmin = localStorage.getItem('mess_admin_token') === CONFIG.ADMIN_PASS;
-        let isDark = true; // Default Dark Mode 
+        let isDark = true; 
 
         let supabase = null;
         if (supabaseUrl && supabaseKey) {
@@ -120,27 +130,35 @@
         let data = { routine: CONFIG.ROUTINE, members: [], expenses: [] };
         let bazaarItems = [{name: '', amount: ''}];
 
-        // Local State Fallback initialization 
+        // Local Memory Fallback
         data.members = CONFIG.MEMBERS.map((name, index) => ({ id: String(index+1), name, paid: 0, borrowed: 0, absentDays: 0 }));
 
+        const showToast = (msg, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white';
+            const icon = type === 'success' ? 'check-circle' : 'alert-circle';
+            toast.className = `toast-enter flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg backdrop-blur-md ${colors}`;
+            toast.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5"></i><span class="text-sm font-semibold">${msg}</span>`;
+            container.appendChild(toast);
+            lucide.createIcons();
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = '0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
+        };
+
         const initApp = async () => {
-            // Force Default Dark Mode UI Aspect
             document.documentElement.classList.add('dark');
             if (isAdmin) document.getElementById('adminBtnText').innerText = 'লগআউট';
 
             if (supabase) {
                 try {
-                    // Fetch from Supabase Tables
                     const { data: resRoutine } = await supabase.from('routine').select('*');
-                    const { data: resMembers } = await supabase.from('members').select('*');
-                    const { data: resExpenses } = await supabase.from('expenses').select('*');
+                    const { data: resMembers } = await supabase.from('members').select('*').order('id');
+                    const { data: resExpenses } = await supabase.from('expenses').select('*').order('date', { ascending: false });
 
                     if (resRoutine && resRoutine.length > 0) data.routine = resRoutine;
                     if (resMembers && resMembers.length > 0) data.members = resMembers;
                     if (resExpenses && resExpenses.length > 0) data.expenses = resExpenses;
-                } catch (err) {
-                    console.log("Supabase error fetching. Fallback to Memory State.");
-                }
+                } catch (err) { console.log("Supabase fallback."); }
             }
             render();
         };
@@ -150,11 +168,7 @@
             const chatIds = CONFIG.TG_CHAT_ID.split(',');
             const url = `https://api.telegram.org/bot${CONFIG.TG_TOKEN}/sendMessage`;
             for(let id of chatIds) {
-                fetch(url, { 
-                    method: 'POST', 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify({ chat_id: id.trim(), text: msg, parse_mode: 'HTML' }) 
-                }).catch(()=>{});
+                fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ chat_id: id.trim(), text: msg, parse_mode: 'HTML' }) }).catch(()=>{});
             }
         };
 
@@ -175,68 +189,77 @@
             const today = days[new Date().getDay()];
             const todayRoutine = data.routine.find(r => r.day === today);
             const currentDayNumber = new Date().getDate();
+            const dateStr = new Date().toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' });
             let html = '';
 
-            // 10th Day Alert Logic (Rent & Wifi Alert)
+            // 10th Day Alerts (Premium UI)
             if (currentDayNumber > 10) {
                 html += `
-                <div class="space-y-3 mb-4">
-                    <div class="flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-2xl shadow-sm">
-                        <i data-lucide="alert-triangle" class="w-5 h-5 shrink-0"></i>
-                        <span class="text-sm">আজ মাসের <b>${currentDayNumber} তারিখ</b>, এখনো বাসা ভাড়া দেওয়া হয়নি!</span>
+                <div class="space-y-3 mb-6">
+                    <div class="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400 p-4 rounded-2xl shadow-sm">
+                        <i data-lucide="alert-triangle" class="w-6 h-6 shrink-0"></i>
+                        <span class="text-sm">আজ মাসের <b>${currentDayNumber} তারিখ</b>, এখনো <b>বাসা ভাড়া</b> দেওয়া হয়নি!</span>
                     </div>
-                    <div class="flex items-center gap-3 bg-orange-500/10 border border-orange-500/30 text-orange-400 p-4 rounded-2xl shadow-sm">
-                        <i data-lucide="wifi-off" class="w-5 h-5 shrink-0"></i>
-                        <span class="text-sm">১০ দিন পার হয়ে গেছে! এখনও ওয়াইফাই বিল পরিশোধ করা হয়নি।</span>
+                    <div class="flex items-center gap-3 bg-orange-50 border border-orange-200 text-orange-600 dark:bg-orange-500/10 dark:border-orange-500/20 dark:text-orange-400 p-4 rounded-2xl shadow-sm">
+                        <i data-lucide="wifi-off" class="w-6 h-6 shrink-0"></i>
+                        <span class="text-sm">১০ দিন পার হয়ে গেছে! এখনও <b>ওয়াইফাই বিল</b> পরিশোধ করা হয়নি।</span>
                     </div>
                 </div>`;
             }
+
+            html += `<div class="mb-4">
+                <p class="text-sm font-bold text-slate-400 dark:text-slate-500 mb-1">${dateStr}</p>
+                <h2 class="text-2xl font-bold mb-4">আজকের মেনু</h2>
+            </div>`;
 
             if(todayRoutine) {
                 html += `
-                <div class="bg-white dark:bg-darkCard rounded-2xl p-5 mb-5 shadow-sm border border-slate-200 dark:border-darkBorder relative overflow-hidden">
-                    <div class="flex items-center gap-3 mb-4">
-                        <span class="bg-blue-500 text-white px-2.5 py-1 rounded-lg text-xs font-bold shadow-md shadow-blue-500/30">আজকে</span>
-                        <h2 class="text-xl font-bold">${todayRoutine.day}</h2>
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 mb-6 shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden">
+                    <i data-lucide="chef-hat" class="absolute -right-6 -top-6 w-32 h-32 text-white/10 opacity-50 transform rotate-12"></i>
+                    <div class="flex justify-between items-center mb-6 relative z-10">
+                        <span class="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-lg text-sm font-bold shadow-sm">${todayRoutine.day}</span>
+                        ${isAdmin ? `<button class="edit-routine-btn p-2 bg-white/10 hover:bg-white/20 rounded-lg backdrop-blur-md transition-colors" data-id="${todayRoutine.id}"><i data-lucide="edit-3" class="w-4 h-4"></i></button>` : ''}
                     </div>
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        <div class="bg-orange-500/5 p-3.5 rounded-xl border border-orange-500/10 flex flex-col justify-center">
-                            <div class="flex items-center gap-2 text-orange-400 font-bold text-xs mb-1"><i data-lucide="sunrise" class="w-4 h-4"></i> সকাল</div>
-                            <span class="font-bold text-base text-slate-200">${todayRoutine.b}</span>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
+                        <div class="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl">
+                            <div class="flex items-center gap-2 text-indigo-100 mb-1 font-semibold text-xs"><i data-lucide="sunrise" class="w-4 h-4"></i> সকাল</div>
+                            <div class="text-lg font-bold">${todayRoutine.b}</div>
                         </div>
-                        <div class="bg-green-500/5 p-3.5 rounded-xl border border-green-500/10 flex flex-col justify-center">
-                            <div class="flex items-center gap-2 text-green-400 font-bold text-xs mb-1"><i data-lucide="sun" class="w-4 h-4"></i> দুপুর</div>
-                            <span class="font-bold text-base text-slate-200">${todayRoutine.l}</span>
+                        <div class="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl">
+                            <div class="flex items-center gap-2 text-indigo-100 mb-1 font-semibold text-xs"><i data-lucide="sun" class="w-4 h-4"></i> দুপুর</div>
+                            <div class="text-lg font-bold">${todayRoutine.l}</div>
                         </div>
-                        <div class="bg-purple-500/5 p-3.5 rounded-xl border border-purple-500/10 flex flex-col justify-center">
-                            <div class="flex items-center gap-2 text-purple-400 font-bold text-xs mb-1"><i data-lucide="moon" class="w-4 h-4"></i> রাত</div>
-                            <span class="font-bold text-base text-slate-200">${todayRoutine.d}</span>
+                        <div class="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl">
+                            <div class="flex items-center gap-2 text-indigo-100 mb-1 font-semibold text-xs"><i data-lucide="moon" class="w-4 h-4"></i> রাত</div>
+                            <div class="text-lg font-bold">${todayRoutine.d}</div>
                         </div>
                     </div>
                 </div>`;
             }
 
-            html += `<div class="bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-slate-200 dark:border-darkBorder overflow-hidden">
-                <div class="p-4 border-b border-slate-200 dark:border-darkBorder bg-slate-50 dark:bg-slate-800/50"><h3 class="font-bold text-base">সাপ্তাহিক বিস্তারিত রুটিন</h3></div>
+            html += `<div class="glass-panel rounded-3xl shadow-sm border border-slate-200 dark:border-darkBorder overflow-hidden">
+                <div class="p-5 border-b border-slate-200 dark:border-darkBorder bg-slate-50/50 dark:bg-slate-800/30">
+                    <h3 class="font-bold text-lg flex items-center gap-2"><i data-lucide="calendar-days" class="w-5 h-5 text-indigo-500"></i> সাপ্তাহিক বিস্তারিত রুটিন</h3>
+                </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left">
+                    <table class="w-full text-left whitespace-nowrap">
                         <thead>
-                            <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-darkBorder text-xs">
-                                <th class="p-3 font-semibold">বার</th>
-                                <th class="p-3 font-semibold">সকাল</th>
-                                <th class="p-3 font-semibold">দুপুর</th>
-                                <th class="p-3 font-semibold">রাত</th>
-                                ${isAdmin ? '<th class="p-3 text-right">অ্যাকশন</th>' : ''}
+                            <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-darkBorder/50 text-sm">
+                                <th class="p-4 font-semibold">বার</th>
+                                <th class="p-4 font-semibold">সকাল</th>
+                                <th class="p-4 font-semibold">দুপুর</th>
+                                <th class="p-4 font-semibold">রাত</th>
+                                ${isAdmin ? '<th class="p-4 text-right">এডিট</th>' : ''}
                             </tr>
                         </thead>
                         <tbody>
                             ${data.routine.map(r => `
-                                <tr class="border-b border-slate-100 dark:border-darkBorder/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm">
-                                    <td class="p-3 font-bold text-blue-500">${r.day}</td>
-                                    <td class="p-3 text-slate-300">${r.b}</td>
-                                    <td class="p-3 text-slate-300">${r.l}</td>
-                                    <td class="p-3 text-slate-300">${r.d}</td>
-                                    ${isAdmin ? `<td class="p-3 text-right"><button class="text-slate-400 hover:text-blue-500 edit-routine-btn p-1.5 rounded-lg" data-id="${r.id}"><i data-lucide="edit-2" class="w-4 h-4"></i></button></td>` : ''}
+                                <tr class="border-b border-slate-50 dark:border-darkBorder/30 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm transition-colors ${r.day === today ? 'bg-indigo-50/50 dark:bg-indigo-500/5' : ''}">
+                                    <td class="p-4 font-bold ${r.day === today ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-200'}">${r.day}</td>
+                                    <td class="p-4 text-slate-600 dark:text-slate-300">${r.b}</td>
+                                    <td class="p-4 text-slate-600 dark:text-slate-300">${r.l}</td>
+                                    <td class="p-4 text-slate-600 dark:text-slate-300">${r.d}</td>
+                                    ${isAdmin ? `<td class="p-4 text-right"><button class="text-slate-400 hover:text-indigo-500 edit-routine-btn p-2 rounded-lg bg-slate-100 dark:bg-slate-800" data-id="${r.id}"><i data-lucide="edit-2" class="w-4 h-4"></i></button></td>` : ''}
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -248,128 +271,136 @@
 
         const buildFinanceHTML = () => {
             return `
-            <div class="bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-slate-200 dark:border-darkBorder overflow-hidden">
-                <div class="p-4 border-b border-slate-200 dark:border-darkBorder flex flex-col gap-2 bg-slate-50 dark:bg-slate-800/50">
-                    <h3 class="font-bold text-base">সদস্যদের প্রোফাইল ও প্লাস/মাইনাস হিসাব</h3>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left whitespace-nowrap">
-                        <thead>
-                            <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-darkBorder text-xs">
-                                <th class="p-3 font-semibold">সদস্যের নাম</th>
-                                <th class="p-3 font-semibold text-green-500">জমা</th>
-                                <th class="p-3 font-semibold text-red-500">ধার</th>
-                                <th class="p-3 font-semibold text-purple-500">অফ দিন</th>
-                                <th class="p-3 font-semibold">স্থিতি (পাবে/বাকি)</th>
-                                ${isAdmin ? '<th class="p-3 text-right">সম্পাদনা</th>' : ''}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${data.members.map(m => {
-                                let absent = m.absentDays || 0;
-                                let rebate = absent > CONFIG.MIN_ABSENT_DAYS_FOR_REBATE ? absent * CONFIG.REBATE_PER_DAY : 0;
-                                let payable = CONFIG.MONTHLY_FEE - rebate;
-                                let due = payable - (m.paid || 0) + (m.borrowed || 0);
-                                
-                                let statusText = '';
-                                if(due < 0) {
-                                    statusText = `<span class="text-green-400 font-bold"><i data-lucide="plus" class="inline w-3 h-3"></i> বাসা থেকে পাবে ৳${Math.abs(due)}</span>`;
-                                } else if(due > 0) {
-                                    statusText = `<span class="text-orange-400 font-bold"><i data-lucide="minus" class="inline w-3 h-3"></i> বাসায় বাকি ৳${due}</span>`;
-                                } else {
-                                    statusText = `<span class="text-slate-400 font-semibold">৳০ (সমতা)</span>`;
-                                }
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="font-bold text-xl">সদস্যদের হিসাব</h3>
+                <div class="text-[10px] font-bold text-slate-500 bg-slate-200 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700">ফি: ৳${CONFIG.MONTHLY_FEE} | রিবেট: ৳${CONFIG.REBATE_PER_DAY}/দিন</div>
+            </div>
 
-                                return `
-                                <tr class="border-b border-slate-100 dark:border-darkBorder/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm">
-                                    <td class="p-3 font-bold flex items-center gap-2">
-                                        <div class="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs text-white">${m.name.charAt(0)}</div>
-                                        ${m.name}
-                                    </td>
-                                    <td class="p-3 text-green-400">৳${m.paid || 0}</td>
-                                    <td class="p-3 text-red-400">৳${m.borrowed || 0}</td>
-                                    <td class="p-3 text-purple-400">${absent} দিন</td>
-                                    <td class="p-3">${statusText}</td>
-                                    ${isAdmin ? `<td class="p-3 text-right"><button class="text-slate-400 hover:text-blue-500 edit-member-btn p-1.5 rounded-lg" data-id="${m.id}"><i data-lucide="edit-2" class="w-4 h-4"></i></button></td>` : ''}
-                                </tr>`;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                ${data.members.map(m => {
+                    let absent = m.absentDays || 0;
+                    let rebate = absent > CONFIG.MIN_ABSENT_DAYS_FOR_REBATE ? absent * CONFIG.REBATE_PER_DAY : 0;
+                    let mealCost = CONFIG.MONTHLY_FEE - rebate;
+                    let netBalance = (m.paid || 0) - mealCost - (m.borrowed || 0);
+                    
+                    let badgeColor, badgeText, badgeIcon, textColor;
+                    if (netBalance > 0) {
+                        badgeColor = 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20';
+                        textColor = 'text-emerald-600 dark:text-emerald-400';
+                        badgeText = 'বাসা থেকে পাবে'; badgeIcon = 'plus-circle';
+                    } else if (netBalance < 0) {
+                        badgeColor = 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20';
+                        textColor = 'text-rose-600 dark:text-rose-400';
+                        badgeText = 'বাসায় বাকি'; badgeIcon = 'minus-circle';
+                    } else {
+                        badgeColor = 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700';
+                        textColor = 'text-slate-600 dark:text-slate-400';
+                        badgeText = 'হিসাব ক্লিয়ার'; badgeIcon = 'check-circle-2';
+                    }
+
+                    return `
+                    <div class="glass-panel p-5 rounded-3xl border border-slate-200 dark:border-darkBorder shadow-sm relative overflow-hidden">
+                        ${isAdmin ? `<button class="edit-member-btn absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl hover:text-indigo-500 transition-colors" data-id="${m.id}"><i data-lucide="edit-2" class="w-4 h-4"></i></button>` : ''}
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-100 to-purple-200 dark:from-indigo-900 dark:to-purple-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-xl shadow-inner">${m.name.charAt(0)}</div>
+                            <div>
+                                <h4 class="font-bold text-lg text-slate-800 dark:text-white">${m.name}</h4>
+                                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400">অফ: ${absent} দিন (রিবেট ৳${rebate})</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mb-4 text-sm border-t border-b border-slate-100 dark:border-darkBorder/50 py-3">
+                            <div class="flex justify-between"><span class="text-slate-500">জমা:</span> <span class="font-bold text-emerald-500">৳${m.paid || 0}</span></div>
+                            <div class="flex justify-between"><span class="text-slate-500">খরচ:</span> <span class="font-bold text-slate-700 dark:text-slate-300">৳${mealCost}</span></div>
+                            ${m.borrowed > 0 ? `<div class="flex justify-between col-span-2"><span class="text-slate-500">মাইনাস/ধার:</span> <span class="font-bold text-rose-500">৳${m.borrowed}</span></div>` : ''}
+                        </div>
+                        <div class="${badgeColor} border p-3 rounded-2xl flex items-center justify-between">
+                            <div class="flex items-center gap-2 ${textColor}"><i data-lucide="${badgeIcon}" class="w-5 h-5"></i><span class="text-xs font-bold uppercase">${badgeText}</span></div>
+                            <span class="text-lg font-bold ${textColor}">৳${Math.abs(netBalance)}</span>
+                        </div>
+                    </div>`;
+                }).join('')}
             </div>`;
         };
 
         const buildExpenseHTML = () => {
             let itemsHtml = bazaarItems.map((item, idx) => `
                 <div class="flex gap-2 mb-2 items-center">
-                    <input type="text" placeholder="আইটেম (যেমন: চাল)" class="bazaar-name flex-1 p-2.5 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-xs focus:outline-none" value="${item.name}" data-idx="${idx}">
-                    <input type="number" placeholder="৳" class="bazaar-amount w-20 p-2.5 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-xs text-center focus:outline-none" value="${item.amount}" data-idx="${idx}">
-                    <button class="remove-bazaar-btn text-red-500 p-2.5 bg-red-500/10 rounded-xl flex-shrink-0" data-idx="${idx}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    <input type="text" placeholder="আইটেম (যেমন: চাল)" class="bazaar-name flex-1 p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" value="${item.name}" data-idx="${idx}">
+                    <input type="number" placeholder="৳" class="bazaar-amount w-24 p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500" value="${item.amount}" data-idx="${idx}">
+                    <button class="remove-bazaar-btn text-rose-500 p-3 bg-rose-50 dark:bg-rose-500/10 rounded-xl flex-shrink-0 hover:bg-rose-100 dark:hover:bg-rose-500/20" data-idx="${idx}"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
                 </div>
             `).join('');
 
             let membersOptions = data.members.map(m => `<option value="${m.name}">${m.name}</option>`).join('');
 
             let expenseList = data.expenses.map(e => `
-                <div class="p-4 border-b border-slate-100 dark:border-darkBorder/50 relative hover:bg-slate-800/30 text-xs">
+                <div class="p-4 border-b border-slate-100 dark:border-darkBorder/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors relative">
                     <div class="flex justify-between items-start">
-                        <div>
-                            <span class="font-bold text-sm text-slate-200">${e.type}</span>
-                            <p class="text-[10px] text-slate-400 mt-0.5">${e.date} ${e.shopper ? `• বাজার করেছে: <b>${e.shopper}</b>` : ''}</p>
+                        <div class="flex gap-3">
+                            <div class="p-2 rounded-xl h-fit ${e.type === 'বাজার' ? 'bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10' : 'bg-orange-50 text-orange-500 dark:bg-orange-500/10'}">
+                                <i data-lucide="${e.type === 'বাজার' ? 'shopping-bag' : 'receipt'}" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <span class="font-bold text-sm text-slate-800 dark:text-slate-200">${e.type}</span>
+                                <p class="text-[11px] text-slate-400 mt-0.5">${e.date} ${e.shopper ? `• বাজার: <b>${e.shopper}</b>` : ''}</p>
+                            </div>
                         </div>
                         <div class="text-right">
-                            <span class="text-sm font-bold text-white block">৳${e.total}</span>
-                            <span class="text-[9px] px-1.5 py-0.5 rounded font-bold ${e.status === 'approved' ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'}">${e.status === 'approved' ? 'Approved' : 'Pending'}</span>
+                            <span class="text-base font-bold text-slate-800 dark:text-white block">৳${e.total}</span>
+                            <span class="text-[9px] px-2 py-0.5 rounded-full font-bold ${e.status === 'approved' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'}">${e.status === 'approved' ? 'Approved' : 'Pending'}</span>
                         </div>
                     </div>
                     ${e.items && e.items.length > 0 ? `
-                        <div class="bg-slate-800/40 p-2 rounded-lg mt-2 space-y-1">
-                            ${e.items.map(i=>`<div class="flex justify-between text-[11px]"><span class="text-slate-400">${i.name}</span><span class="text-slate-200 font-bold">৳${i.amount}</span></div>`).join('')}
+                        <div class="bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-darkBorder/50 p-3 rounded-xl mt-3 space-y-2">
+                            ${e.items.map(i=>`<div class="flex justify-between text-xs"><span class="text-slate-600 dark:text-slate-400">${i.name}</span><span class="text-slate-800 dark:text-slate-200 font-bold">৳${i.amount}</span></div>`).join('')}
                         </div>` : ''
                     }
-                    <div class="flex gap-2 mt-3">
-                        ${isAdmin && e.status === 'pending' ? `<button class="bg-green-500 text-white px-2.5 py-1 rounded text-[10px] font-bold approve-exp-btn" data-id="${e.id}">অ্যাপ্রুভ</button>` : ''}
-                        ${isAdmin ? `<button class="bg-red-500/20 text-red-400 px-2.5 py-1 rounded text-[10px] font-bold del-exp-btn" data-id="${e.id}">মুছুন</button>` : ''}
+                    <div class="flex gap-2 mt-3 pl-11">
+                        ${isAdmin && e.status === 'pending' ? `<button class="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors approve-exp-btn shadow-md" data-id="${e.id}">অ্যাপ্রুভ</button>` : ''}
+                        ${isAdmin ? `<button class="bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-500 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors del-exp-btn" data-id="${e.id}">মুছুন</button>` : ''}
                     </div>
                 </div>
-            `).join('') || '<div class="p-6 text-center text-slate-500 text-xs">কোনো খরচের এন্ট্রি নেই</div>';
+            `).join('') || '<div class="p-8 text-center text-slate-400 text-sm flex flex-col items-center gap-2"><i data-lucide="inbox" class="w-8 h-8 opacity-50"></i> কোনো খরচ নেই</div>';
 
             return `
-            <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
-                <div class="lg:col-span-2 bg-white dark:bg-darkCard rounded-2xl border border-slate-200 dark:border-darkBorder p-4 h-fit">
-                    <h3 class="font-bold text-base mb-3 flex items-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4 text-blue-500"></i> খরচ ইনপুট</h3>
-                    <div class="space-y-3">
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div class="lg:col-span-2 glass-panel rounded-3xl border border-slate-200 dark:border-darkBorder p-6 h-fit shadow-sm">
+                    <h3 class="font-bold text-lg mb-5 flex items-center gap-2"><div class="p-2 bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10 rounded-lg"><i data-lucide="plus-circle" class="w-5 h-5"></i></div> নতুন খরচ</h3>
+                    <div class="space-y-4">
                         <div>
-                            <label class="text-[11px] font-bold text-slate-400 mb-1 block">খরচের খাত</label>
-                            <select id="expType" class="w-full p-2.5 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-xs text-white focus:outline-none">
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">খরচের খাত</label>
+                            <select id="expType" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                 <option value="বাজার">বাজার</option><option value="খালার বিল">খালার বিল</option><option value="বাসা ভাড়া">বাসা ভাড়া</option><option value="কারেন্ট বিল">কারেন্ট বিল</option><option value="ওয়াইফাই বিল">ওয়াইফাই বিল</option><option value="অন্যান্য">অন্যান্য</option>
                             </select>
                         </div>
                         <div>
-                            <label class="text-[11px] font-bold text-slate-400 mb-1 block">তারিখ</label>
-                            <input type="date" id="expDate" class="w-full p-2.5 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-xs text-white focus:outline-none" value="${new Date().toISOString().split('T')[0]}">
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">তারিখ</label>
+                            <input type="date" id="expDate" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" value="${new Date().toISOString().split('T')[0]}">
                         </div>
-                        <div id="bazaarSection" class="space-y-3 pt-2">
+                        <div id="bazaarSection" class="space-y-4 pt-2 border-t border-slate-100 dark:border-darkBorder/50">
                             <div>
-                                <label class="text-[11px] font-bold text-slate-400 mb-1 block">বাজারকারী সদস্য</label>
-                                <select id="expShopper" class="w-full p-2.5 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-xs text-white focus:outline-none">
+                                <label class="text-xs font-bold text-slate-500 mb-1 block">বাজারকারী সদস্য</label>
+                                <select id="expShopper" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                     <option value="">-- নাম সিলেক্ট করুন --</option>${membersOptions}
                                 </select>
                             </div>
                             <div>
                                 <div id="bazaarItemsContainer">${itemsHtml}</div>
-                                <button id="addBazaarItemBtn" class="w-full mt-2 py-2 border border-dashed border-slate-700 rounded-xl text-xs font-bold text-slate-400 flex justify-center items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> আরও আইটেম</button>
+                                <button id="addBazaarItemBtn" class="w-full mt-2 py-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex justify-center items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> আরও আইটেম</button>
                             </div>
                         </div>
-                        <div id="otherSection" class="hidden">
-                            <label class="text-[11px] font-bold text-slate-400 mb-1 block">মোট টাকার পরিমাণ</label>
-                            <input type="number" id="expTotal" placeholder="টাকা" class="w-full p-2.5 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-xs text-white focus:outline-none">
+                        <div id="otherSection" class="hidden pt-2 border-t border-slate-100 dark:border-darkBorder/50">
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">মোট টাকার পরিমাণ</label>
+                            <input type="number" id="expTotal" placeholder="কত টাকা?" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
-                        <button id="submitExpBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition-all shadow-md">সেভ ও সাবমিট</button>
+                        <button id="submitExpBtn" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-3.5 rounded-xl text-sm transition-transform active:scale-95 shadow-lg shadow-indigo-500/20 mt-2">সেভ করুন</button>
                     </div>
                 </div>
-                <div class="lg:col-span-3 bg-white dark:bg-darkCard rounded-2xl border border-slate-200 dark:border-darkBorder overflow-hidden flex flex-col max-h-[400px]">
-                    <div class="p-3 border-b border-slate-200 dark:border-darkBorder bg-slate-50 dark:bg-slate-800/50 font-bold text-xs">খরচের হিস্টোরি</div>
+                <div class="lg:col-span-3 glass-panel rounded-3xl border border-slate-200 dark:border-darkBorder overflow-hidden flex flex-col h-full max-h-[600px] shadow-sm">
+                    <div class="p-5 border-b border-slate-200 dark:border-darkBorder bg-slate-50/50 dark:bg-slate-800/30 flex justify-between items-center">
+                        <h3 class="font-bold text-lg">খরচের হিস্টোরি</h3>
+                        <span class="text-xs font-bold bg-slate-200 dark:bg-slate-700 px-2.5 py-1 rounded-lg">${data.expenses.length} টি এন্ট্রি</span>
+                    </div>
                     <div class="overflow-y-auto hide-scrollbar flex-1">${expenseList}</div>
                 </div>
             </div>`;
@@ -381,18 +412,21 @@
             const remaining = totalFund - totalSpent;
 
             return `
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                <div class="bg-gradient-to-br from-blue-600 to-indigo-700 p-4 rounded-xl text-white">
-                    <span class="text-[10px] text-blue-100 font-bold block uppercase">মোট কালেকশন</span>
-                    <h3 class="text-2xl font-bold mt-1">৳${totalFund}</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="bg-gradient-to-br from-indigo-500 to-blue-600 p-6 rounded-3xl shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden">
+                    <i data-lucide="wallet" class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 transform rotate-12"></i>
+                    <span class="text-xs font-bold block uppercase tracking-wider text-indigo-100 mb-2">মোট ফান্ড কালেকশন</span>
+                    <h3 class="text-4xl font-bold relative z-10">৳${totalFund}</h3>
                 </div>
-                <div class="bg-gradient-to-br from-orange-600 to-red-600 p-4 rounded-xl text-white">
-                    <span class="text-[10px] text-orange-100 font-bold block uppercase">মোট খরচ (Approved)</span>
-                    <h3 class="text-2xl font-bold mt-1">৳${totalSpent}</h3>
+                <div class="bg-gradient-to-br from-rose-500 to-orange-500 p-6 rounded-3xl shadow-xl shadow-rose-500/20 text-white relative overflow-hidden">
+                    <i data-lucide="trending-down" class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 transform rotate-12"></i>
+                    <span class="text-xs font-bold block uppercase tracking-wider text-rose-100 mb-2">মোট খরচ (Approved)</span>
+                    <h3 class="text-4xl font-bold relative z-10">৳${totalSpent}</h3>
                 </div>
-                <div class="bg-gradient-to-br from-emerald-600 to-teal-600 p-4 rounded-xl text-white">
-                    <span class="text-[10px] text-emerald-100 font-bold block uppercase">কারেন্ট ব্যালেন্স</span>
-                    <h3 class="text-2xl font-bold mt-1">৳${remaining}</h3>
+                <div class="bg-gradient-to-br from-emerald-500 to-teal-500 p-6 rounded-3xl shadow-xl shadow-emerald-500/20 text-white relative overflow-hidden">
+                    <i data-lucide="piggy-bank" class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 transform rotate-12"></i>
+                    <span class="text-xs font-bold block uppercase tracking-wider text-emerald-100 mb-2">বর্তমান ব্যালেন্স</span>
+                    <h3 class="text-4xl font-bold relative z-10">৳${remaining}</h3>
                 </div>
             </div>`;
         };
@@ -402,8 +436,7 @@
                 const typeSelect = document.getElementById('expType');
                 if(typeSelect) {
                     typeSelect.addEventListener('change', (e) => {
-                        const val = e.target.value;
-                        if(val === 'বাজার') {
+                        if(e.target.value === 'বাজার') {
                             document.getElementById('bazaarSection').classList.remove('hidden');
                             document.getElementById('otherSection').classList.add('hidden');
                         } else {
@@ -413,11 +446,7 @@
                     });
                 }
 
-                document.getElementById('addBazaarItemBtn')?.addEventListener('click', () => {
-                    bazaarItems.push({name: '', amount: ''});
-                    render();
-                });
-
+                document.getElementById('addBazaarItemBtn')?.addEventListener('click', () => { bazaarItems.push({name: '', amount: ''}); render(); });
                 document.querySelectorAll('.bazaar-name').forEach(el => el.addEventListener('input', (e) => bazaarItems[e.target.dataset.idx].name = e.target.value));
                 document.querySelectorAll('.bazaar-amount').forEach(el => el.addEventListener('input', (e) => bazaarItems[e.target.dataset.idx].amount = e.target.value));
                 document.querySelectorAll('.remove-bazaar-btn').forEach(el => el.addEventListener('click', (e) => {
@@ -432,27 +461,22 @@
 
                     if(type === 'বাজার') {
                         shopper = document.getElementById('expShopper').value;
-                        if(!shopper) return alert('বাজারকারীর নাম সিলেক্ট করুন!');
+                        if(!shopper) return showToast('বাজারকারীর নাম সিলেক্ট করুন!', 'error');
                         items = bazaarItems.filter(i => i.name && i.amount).map(i => ({name: i.name, amount: Number(i.amount)}));
                         total = items.reduce((sum, i) => sum + i.amount, 0);
-                    } else {
-                        total = Number(document.getElementById('expTotal').value);
-                    }
+                    } else { total = Number(document.getElementById('expTotal').value); }
 
-                    if(total <= 0) return alert('সঠিক এমাউন্ট দিন!');
+                    if(total <= 0) return showToast('সঠিক এমাউন্ট দিন!', 'error');
 
                     const payload = { id: String(Date.now()), type, date, total, status: isAdmin ? 'approved' : 'pending', items, shopper };
                     
-                    if (supabase) {
-                        await supabase.from('expenses').insert([payload]);
-                    }
-
+                    if (supabase) await supabase.from('expenses').insert([payload]);
                     data.expenses.unshift(payload);
-                    await sendTelegramMsg(`নতুন খরচ ইনপুট: ${type}, পরিমাণ: ৳${total} (${shopper || 'মেস ফান্ড'})`);
+                    await sendTelegramMsg(`<b>নতুন খরচ ইনপুট:</b>\nখাত: ${type}\nপরিমাণ: ৳${total}\n${shopper ? `মারফত: ${shopper}` : ''}`);
                     
                     bazaarItems = [{name: '', amount: ''}];
                     render();
-                    alert('সাফল্যের সাথে খরচ সেভ করা হয়েছে!');
+                    showToast('খরচ সফলভাবে সেভ হয়েছে!');
                 });
 
                 document.querySelectorAll('.approve-exp-btn').forEach(btn => btn.addEventListener('click', async (e) => {
@@ -461,14 +485,16 @@
                     const item = data.expenses.find(x => x.id === id);
                     if(item) item.status = 'approved';
                     render();
+                    showToast('অ্যাপ্রুভ করা হয়েছে!');
                 }));
 
                 document.querySelectorAll('.del-exp-btn').forEach(btn => btn.addEventListener('click', async (e) => {
-                    const id = e.target.dataset.id;
-                    if(confirm('মুছে ফেলতে চান?')) {
+                    if(confirm('এটি মুছে ফেলতে চান?')) {
+                        const id = e.target.dataset.id;
                         if (supabase) await supabase.from('expenses').delete().eq('id', id);
                         data.expenses = data.expenses.filter(x => x.id !== id);
                         render();
+                        showToast('মুছে ফেলা হয়েছে!', 'error');
                     }
                 }));
             }
@@ -477,19 +503,18 @@
                 const r = data.routine.find(x => x.id === e.currentTarget.dataset.id);
                 if(!r) return;
                 showModal(`
-                    <h3 class="font-bold text-base mb-3 border-b border-slate-700 pb-2">রুটিন আপডেট: ${r.day}</h3>
-                    <div class="space-y-3">
-                        <div><label class="text-[11px] text-slate-400">সকাল</label><input type="text" id="er-b" value="${r.b}" class="w-full p-2 bg-slate-800 text-xs rounded-lg text-white outline-none"></div>
-                        <div><label class="text-[11px] text-slate-400">দুপুর</label><input type="text" id="er-l" value="${r.l}" class="w-full p-2 bg-slate-800 text-xs rounded-lg text-white outline-none"></div>
-                        <div><label class="text-[11px] text-slate-400">রাত</label><input type="text" id="er-d" value="${r.d}" class="w-full p-2 bg-slate-800 text-xs rounded-lg text-white outline-none"></div>
+                    <h3 class="font-bold text-lg mb-4 border-b border-slate-100 dark:border-darkBorder pb-3">রুটিন আপডেট: <span class="text-indigo-500">${r.day}</span></h3>
+                    <div class="space-y-4">
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">সকাল</label><input type="text" id="er-b" value="${r.b}" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"></div>
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">দুপুর</label><input type="text" id="er-l" value="${r.l}" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"></div>
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">রাত</label><input type="text" id="er-d" value="${r.d}" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"></div>
                     </div>
-                    <div class="flex gap-2 mt-4"><button id="closeModal" class="flex-1 py-2 text-xs bg-slate-700 rounded-lg text-white font-bold">বাতিল</button><button id="saveRoutine" class="flex-1 py-2 text-xs bg-blue-600 rounded-lg text-white font-bold">সেভ</button></div>
+                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="saveRoutine" class="flex-1 py-3 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-md">সেভ করুন</button></div>
                 `, async () => {
                     const updated = { b: document.getElementById('er-b').value, l: document.getElementById('er-l').value, d: document.getElementById('er-d').value };
                     if (supabase) await supabase.from('routine').update(updated).eq('id', r.id);
                     Object.assign(r, updated);
-                    hideModal();
-                    render();
+                    hideModal(); render(); showToast('রুটিন আপডেট হয়েছে!');
                 });
             }));
 
@@ -497,26 +522,25 @@
                 const m = data.members.find(x => x.id === e.currentTarget.dataset.id);
                 if(!m) return;
                 showModal(`
-                    <h3 class="font-bold text-base mb-3 border-b border-slate-700 pb-2">${m.name} এর হিসাব সংশোধন</h3>
-                    <div class="space-y-3">
-                        <div><label class="text-[11px] text-slate-400">মোট জমা (৳)</label><input type="number" id="em-p" value="${m.paid || 0}" class="w-full p-2 bg-slate-800 text-xs rounded-lg text-white outline-none"></div>
-                        <div><label class="text-[11px] text-slate-400">মাইনাস/ধার (৳)</label><input type="number" id="em-b" value="${m.borrowed || 0}" class="w-full p-2 bg-slate-800 text-xs rounded-lg text-white outline-none"></div>
-                        <div><label class="text-[11px] text-slate-400">বন্ধ থাকা দিন সংখ্যা</label><input type="number" id="em-a" value="${m.absentDays || 0}" class="w-full p-2 bg-slate-800 text-xs rounded-lg text-white outline-none"></div>
+                    <h3 class="font-bold text-lg mb-4 border-b border-slate-100 dark:border-darkBorder pb-3"><span class="text-indigo-500">${m.name}</span> এর হিসাব</h3>
+                    <div class="space-y-4">
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">মোট জমা (৳)</label><input type="number" id="em-p" value="${m.paid || 0}" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"></div>
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">মাইনাস/ধার (৳)</label><input type="number" id="em-b" value="${m.borrowed || 0}" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"></div>
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 flex justify-between"><span>বন্ধ থাকা দিন</span> <span class="text-[10px] bg-indigo-100 text-indigo-600 px-2 rounded">রিবেটের জন্য</span></label><input type="number" id="em-a" value="${m.absentDays || 0}" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"></div>
                     </div>
-                    <div class="flex gap-2 mt-4"><button id="closeModal" class="flex-1 py-2 text-xs bg-slate-700 rounded-lg text-white font-bold">বাতিল</button><button id="saveMember" class="flex-1 py-2 text-xs bg-blue-600 rounded-lg text-white font-bold">আপডেট</button></div>
+                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="saveMember" class="flex-1 py-3 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-md">আপডেট</button></div>
                 `, async () => {
                     const updated = { paid: Number(document.getElementById('em-p').value), borrowed: Number(document.getElementById('em-b').value), absentDays: Number(document.getElementById('em-a').value) };
                     if (supabase) await supabase.from('members').update(updated).eq('id', m.id);
                     Object.assign(m, updated);
-                    hideModal();
-                    render();
+                    hideModal(); render(); showToast('হিসাব সেভ হয়েছে!');
                 });
             }));
         };
 
         const showModal = (content, onSave) => {
             const mc = document.getElementById('modalContainer');
-            mc.innerHTML = `<div class="bg-white dark:bg-darkCard w-full max-w-xs rounded-2xl p-4 border dark:border-darkBorder fade-in">${content}</div>`;
+            mc.innerHTML = `<div class="bg-white dark:bg-darkCard w-full max-w-sm rounded-3xl p-6 border border-slate-200 dark:border-darkBorder fade-in shadow-2xl">${content}</div>`;
             mc.classList.remove('hidden');
             document.getElementById('closeModal')?.addEventListener('click', hideModal);
             if(onSave) {
@@ -529,32 +553,41 @@
         const hideModal = () => document.getElementById('modalContainer').classList.add('hidden');
 
         document.getElementById('themeToggle').addEventListener('click', () => {
-            isDark = !isDark;
-            document.documentElement.classList.toggle('dark', isDark);
+            isDark = !isDark; document.documentElement.classList.toggle('dark', isDark);
         });
 
         document.getElementById('adminBtn').addEventListener('click', () => {
             if(isAdmin) { 
                 isAdmin = false; localStorage.removeItem('mess_admin_token');
-                document.getElementById('adminBtnText').innerText = 'এডমিন'; render(); return; 
+                document.getElementById('adminBtnText').innerText = 'এডমিন'; render(); showToast('লগআউট সফল!'); return; 
             }
             showModal(`
-                <h3 class="font-bold text-center text-sm mb-3">এডমিন লগইন</h3>
-                <input type="password" id="adminPassInput" class="w-full p-2 rounded-xl bg-slate-800 text-xs text-center text-white outline-none" placeholder="পাসওয়ার্ড">
-                <div class="flex gap-2 mt-4"><button id="closeModal" class="flex-1 py-2 text-xs bg-slate-700 text-white rounded-lg">বাতিল</button><button id="checkPass" class="flex-1 py-2 text-xs bg-blue-600 text-white rounded-lg">লগইন</button></div>
+                <div class="text-center mb-5"><div class="w-14 h-14 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3"><i data-lucide="shield-check" class="w-7 h-7"></i></div><h3 class="font-bold text-xl">এডমিন লগইন</h3></div>
+                <input type="password" id="adminPassInput" class="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border dark:border-slate-700 text-sm text-center tracking-widest font-mono outline-none focus:ring-2 focus:ring-indigo-500" placeholder="পাসওয়ার্ড দিন">
+                <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="checkPass" class="flex-1 py-3 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-md">লগইন</button></div>
             `, () => {
                 const inputPass = document.getElementById('adminPassInput').value;
                 if(inputPass === CONFIG.ADMIN_PASS) {
                     isAdmin = true; localStorage.setItem('mess_admin_token', inputPass);
-                    document.getElementById('adminBtnText').innerText = 'লগআউট'; hideModal(); render();
-                } else alert('ভুল পাসওয়ার্ড!');
+                    document.getElementById('adminBtnText').innerText = 'লগআউট'; hideModal(); render(); showToast('লগইন সফল!');
+                } else showToast('ভুল পাসওয়ার্ড!', 'error');
             });
         });
 
         document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', (e) => {
             activeTab = e.currentTarget.dataset.tab;
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.replace('text-blue-500', 'text-slate-500'));
-            e.currentTarget.classList.replace('text-slate-500', 'text-blue-500');
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.replace('text-indigo-600', 'text-slate-400');
+                b.classList.replace('dark:text-indigo-400', 'dark:text-slate-500');
+            });
+            e.currentTarget.classList.replace('text-slate-400', 'text-indigo-600');
+            e.currentTarget.classList.replace('dark:text-slate-500', 'dark:text-indigo-400');
+            
+            // Tab switch animation trick
+            document.getElementById('app-content').classList.remove('fade-in');
+            void document.getElementById('app-content').offsetWidth; // trigger reflow
+            document.getElementById('app-content').classList.add('fade-in');
+            
             render();
         }));
 
