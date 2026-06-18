@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>মেস ম্যানেজমেন্ট</title>
+    <title>মেস ম্যানেজমেন্ট - Premium V5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -90,7 +90,7 @@
 
         let supabase = null;
         try { if (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_URL.startsWith('http')) supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY); } 
-        catch(e) { console.error("Supabase Error:", e); }
+        catch(e) {}
 
         let data = { routine: [], members: [], expenses: [], logs: [] };
         let bazaarItems = [{name: '', amount: ''}];
@@ -151,8 +151,11 @@
         const logActivity = async (action, details, specificId = null) => {
             const logId = specificId || generateRefId();
             const timestamp = new Date().toLocaleString('bn-BD');
-            const newLog = { id: String(Date.now()), log_id: logId, action, details, timestamp };
             
+            const isDuplicate = data.logs.some(l => l.action === action && l.details === details && (Date.now() - parseInt(l.id)) < 2000);
+            if(isDuplicate) return logId;
+
+            const newLog = { id: String(Date.now()), log_id: logId, action, details, timestamp };
             data.logs.unshift(newLog);
             if (supabase) await supabase.from('activity_logs').insert([newLog]);
             await sendTelegramMsg(`🔔 <b>${action}</b>\n📝 ${details}\n⏰ সময়: ${timestamp}\n🔑 Ref ID: #${logId}`);
@@ -194,13 +197,13 @@
                         supabase.from('routine').select('*').order('id'),
                         supabase.from('members').select('*').order('id'),
                         supabase.from('expenses').select('*').order('date', { ascending: false }),
-                        supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }).limit(40)
+                        supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }).limit(50)
                     ]);
                     if (resR.data) data.routine = resR.data;
                     if (resM.data) data.members = resM.data;
                     if (resE.data) data.expenses = resE.data;
                     if (resL.data) data.logs = resL.data;
-                } catch (err) { showToast('ডাটাবেজ থেকে ডেটা আনতে সমস্যা হচ্ছে!', 'error'); console.log(err); }
+                } catch (err) { showToast('ডাটাবেজ থেকে ডেটা আনতে সমস্যা হচ্ছে!', 'error'); }
             }
             await handleUrlActions();
             render();
@@ -366,7 +369,7 @@
             const remaining = totalFund - totalSpent;
 
             let expenseList = data.expenses.map(e => `
-                <div class="p-4 border-b border-slate-100 dark:border-darkBorder/50 relative">
+                <div class="log-item p-4 border-b border-slate-100 dark:border-darkBorder/50 relative" data-search="${e.type.toLowerCase()} ${e.shopper?.toLowerCase() || ''} ${e.id}">
                     <div class="flex justify-between items-start">
                         <div class="flex gap-3">
                             <div class="p-2 rounded-xl h-fit ${e.type === 'বাজার' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-orange-500/10 text-orange-500'}"><i data-lucide="${e.type === 'বাজার' ? 'shopping-bag' : 'receipt'}" class="w-5 h-5"></i></div>
@@ -390,12 +393,13 @@
 
             const depositLogs = data.logs.filter(l => l.action.includes('জমা') || l.action.includes('মাইনাস') || l.action.includes('হিসাব') || l.action.includes('সদস্য'));
             let depositHtml = depositLogs.map(l => `
-                <div class="p-4 border-b border-slate-100 dark:border-darkBorder/50 relative hover:bg-slate-800/30 transition-colors">
+                <div class="log-item p-4 border-b border-slate-100 dark:border-darkBorder/50 relative hover:bg-slate-800/30 transition-colors" data-search="${l.action.toLowerCase()} ${l.details.toLowerCase()} ${l.log_id?.toLowerCase() || ''}">
                     <div class="flex justify-between items-start pr-6">
                         <div class="flex gap-3">
                             <div class="p-2 rounded-xl h-fit bg-indigo-500/10 text-indigo-500"><i data-lucide="piggy-bank" class="w-5 h-5"></i></div>
                             <div>
                                 <span class="font-bold text-sm text-slate-200">${l.action}</span>
+                                <span class="text-[9px] text-slate-500 ml-1 bg-slate-800 px-1 rounded">#${l.log_id || l.id.substring(l.id.length-5)}</span>
                                 <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">${l.details}</p>
                                 <p class="text-[9px] text-slate-500 mt-2"><i data-lucide="clock" class="inline w-3 h-3 pb-0.5"></i> ${l.timestamp}</p>
                             </div>
@@ -414,13 +418,25 @@
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                 <div class="glass-panel rounded-3xl border border-slate-200 dark:border-darkBorder overflow-hidden flex flex-col h-[500px]">
-                    <div class="p-4 border-b border-slate-200 dark:border-darkBorder bg-slate-50/50 dark:bg-slate-800/30"><h3 class="font-bold text-base flex items-center gap-2"><i data-lucide="shopping-cart" class="w-4 h-4 text-orange-500"></i> খরচের হিস্টোরি</h3></div>
-                    <div class="overflow-y-auto hide-scrollbar flex-1">${expenseList}</div>
+                    <div class="p-4 border-b border-slate-200 dark:border-darkBorder bg-slate-50/50 dark:bg-slate-800/30 flex justify-between items-center gap-2">
+                        <h3 class="font-bold text-base flex items-center gap-2 shrink-0"><i data-lucide="shopping-cart" class="w-4 h-4 text-orange-500"></i> খরচের হিস্টোরি</h3>
+                        <div class="relative w-full max-w-[150px]">
+                            <i data-lucide="search" class="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400"></i>
+                            <input type="text" id="expSearch" placeholder="খাত বা নাম..." class="w-full pl-8 pr-2 py-1.5 text-[11px] bg-slate-800 border border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-white">
+                        </div>
+                    </div>
+                    <div class="overflow-y-auto hide-scrollbar flex-1" id="expenseLogContainer">${expenseList}</div>
                 </div>
                 
                 <div class="glass-panel rounded-3xl border border-slate-200 dark:border-darkBorder overflow-hidden flex flex-col h-[500px]">
-                    <div class="p-4 border-b border-slate-200 dark:border-darkBorder bg-slate-50/50 dark:bg-slate-800/30"><h3 class="font-bold text-base flex items-center gap-2"><i data-lucide="wallet" class="w-4 h-4 text-emerald-500"></i> টাকা জমা ও হিসাবের হিস্ট্রি</h3></div>
-                    <div class="overflow-y-auto hide-scrollbar flex-1">${depositHtml}</div>
+                    <div class="p-4 border-b border-slate-200 dark:border-darkBorder bg-slate-50/50 dark:bg-slate-800/30 flex justify-between items-center gap-2">
+                        <h3 class="font-bold text-base flex items-center gap-2 shrink-0"><i data-lucide="wallet" class="w-4 h-4 text-emerald-500"></i> জমার হিস্ট্রি</h3>
+                        <div class="relative w-full max-w-[150px]">
+                            <i data-lucide="search" class="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400"></i>
+                            <input type="text" id="logSearch" placeholder="নাম বা ID..." class="w-full pl-8 pr-2 py-1.5 text-[11px] bg-slate-800 border border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-white">
+                        </div>
+                    </div>
+                    <div class="overflow-y-auto hide-scrollbar flex-1" id="depositLogContainer">${depositHtml}</div>
                 </div>
             </div>
             
@@ -471,6 +487,28 @@
             }
 
             if(activeTab === 'overview') {
+                const logSearch = document.getElementById('logSearch');
+                if (logSearch) {
+                    logSearch.addEventListener('input', (e) => {
+                        const term = e.target.value.toLowerCase();
+                        document.getElementById('depositLogContainer').querySelectorAll('.log-item').forEach(item => {
+                            if (item.dataset.search.includes(term)) item.style.display = 'block';
+                            else item.style.display = 'none';
+                        });
+                    });
+                }
+                
+                const expSearch = document.getElementById('expSearch');
+                if (expSearch) {
+                    expSearch.addEventListener('input', (e) => {
+                        const term = e.target.value.toLowerCase();
+                        document.getElementById('expenseLogContainer').querySelectorAll('.log-item').forEach(item => {
+                            if (item.dataset.search.includes(term)) item.style.display = 'block';
+                            else item.style.display = 'none';
+                        });
+                    });
+                }
+
                 document.querySelectorAll('.approve-exp-btn').forEach(btn => btn.addEventListener('click', async (e) => {
                     const id = e.target.dataset.id;
                     if (supabase) await supabase.from('expenses').update({ status: 'approved' }).eq('id', id);
@@ -575,9 +613,12 @@
                     if (supabase) { const { error } = await supabase.from('members').update(updated).eq('id', m.id); if (error) return showToast('Supabase Error', 'error'); }
                     Object.assign(m, updated); hideModal(); render(); showToast('হিসাব ডাটাবেজে সেভ হয়েছে!');
                     
-                    if (newPaid > oldPaid) await logActivity('টাকা জমা', `${m.name} নতুন করে ৳${newPaid - oldPaid} জমা দিয়েছে। (মোট: ৳${newPaid})`);
-                    else if (newPaid < oldPaid) await logActivity('হিসাব মাইনাস', `${m.name} এর জমা থেকে ৳${oldPaid - newPaid} কমানো হয়েছে।`);
-                    else await logActivity('সদস্য হিসাব আপডেট', `${m.name} এর প্রোফাইল আপডেট করা হয়েছে।`);
+                    if (newPaid !== oldPaid) {
+                        if (newPaid > oldPaid) await logActivity('টাকা জমা', `${m.name} নতুন করে ৳${newPaid - oldPaid} জমা দিয়েছে। (মোট: ৳${newPaid})`);
+                        else if (newPaid < oldPaid) await logActivity('হিসাব মাইনাস', `${m.name} এর জমা থেকে ৳${oldPaid - newPaid} কমানো হয়েছে।`);
+                    } else {
+                        await logActivity('সদস্য হিসাব আপডেট', `${m.name} এর অন্যান্য প্রোফাইল ডেটা আপডেট করা হয়েছে।`);
+                    }
                 });
             }));
 
