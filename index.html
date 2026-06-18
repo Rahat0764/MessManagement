@@ -552,14 +552,14 @@
                             setTimeout(() => {
                                 showModal(`
                                     <h3 class="font-bold text-rose-500 text-lg mb-4 border-b border-slate-700 pb-3 text-center">চূড়ান্ত কনফার্মেশন (ধাপ ২/২)</h3>
-                                    <p class="text-xs text-rose-400 mb-4 text-center">এটি আর পরিবর্তন করা যাবে পশ্চাতে। আবার পাসওয়ার্ড দিন:</p>
+                                    <p class="text-xs text-rose-400 mb-4 text-center">এই কাজটি আর বাতিল (Undo) করা যাবে না। নিশ্চিত করতে আবার পাসওয়ার্ড দিন:</p>
                                     <input type="password" id="resetPass2" class="w-full p-3 bg-slate-800 border border-rose-500/50 text-center text-sm rounded-xl outline-none tracking-widest font-mono focus:border-rose-500" placeholder="কনফার্ম পাসওয়ার্ড">
                                     <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="btnFinalReset" class="flex-1 py-3 text-sm bg-rose-600 text-white rounded-xl font-bold shadow-lg shadow-rose-500/30">সব মুছে ফেলুন</button></div>
                                 `, async () => {
                                     if(document.getElementById('resetPass2').value === CONFIG.ADMIN_PASS) {
                                         if(supabase) {
-                                            await supabase.from('expenses').delete().neq('id', '0'); 
-                                            await supabase.from('activity_logs').delete().neq('id', '0'); 
+                                            await supabase.from('expenses').delete().not('id', 'is', null); 
+                                            await supabase.from('activity_logs').delete().not('id', 'is', null); 
                                             for(let m of data.members) { await supabase.from('members').update({paid:0, borrowed:0, absentDays:0}).eq('id', m.id); }
                                         }
                                         data.expenses = [];
