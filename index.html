@@ -54,7 +54,7 @@
         </div>
     </header>
 
-    <!-- Main Content Box (pb-32 fixes the scroll overlapping issue) -->
+    <!-- Main Content Box -->
     <div id="main-scroll-container" class="flex-1 overflow-y-auto w-full pb-32 pt-4 px-4 md:px-6 hide-scrollbar">
         <main id="app-content" class="max-w-5xl mx-auto fade-in"></main>
     </div>
@@ -106,6 +106,14 @@
 
         let data = { routine: [], members: [], expenses: [], logs: [] };
         let bazaarItems = [{name: '', amount: ''}];
+
+        // Helper: Check if date is in current month and year
+        const isCurrentMonth = (dateStr) => {
+            if (!dateStr) return false;
+            const d = new Date(dateStr);
+            const now = new Date();
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        };
 
         const generateRefId = () => Math.random().toString(36).substr(2, 6).toUpperCase();
 
@@ -173,26 +181,43 @@
             const today = days[new Date().getDay()];
             const todayRoutine = data.routine.find(r => r.day === today);
             const currentDayNumber = new Date().getDate();
+            const dateStr = new Date().toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' });
             let html = '';
 
+            // Smart Alert Logic (Checks if rent/wifi is paid for CURRENT month and approved)
             if (currentDayNumber > 10) {
-                html += `
-                <div class="space-y-3 mb-6">
-                    <div class="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400 p-4 rounded-2xl shadow-sm">
-                        <i data-lucide="alert-triangle" class="w-6 h-6 shrink-0"></i><span class="text-sm">আজ মাসের <b>${currentDayNumber} তারিখ</b>, এখনো বাসা ভাড়া দেওয়া হয়নি!</span>
-                    </div>
-                </div>`;
+                const isRentPaid = data.expenses.some(e => e.type === 'বাসা ভাড়া' && e.status === 'approved' && isCurrentMonth(e.date));
+                const isWifiPaid = data.expenses.some(e => e.type === 'ওয়াইফাই বিল' && e.status === 'approved' && isCurrentMonth(e.date));
+
+                if (!isRentPaid || !isWifiPaid) {
+                    html += `<div class="space-y-3 mb-6">`;
+                    if (!isRentPaid) {
+                        html += `
+                        <div class="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400 p-4 rounded-2xl shadow-sm">
+                            <i data-lucide="alert-triangle" class="w-6 h-6 shrink-0"></i><span class="text-sm">আজ মাসের <b>${currentDayNumber} তারিখ</b>, এখনো <b>বাসা ভাড়া</b> দেওয়া হয়নি!</span>
+                        </div>`;
+                    }
+                    if (!isWifiPaid) {
+                        html += `
+                        <div class="flex items-center gap-3 bg-orange-50 border border-orange-200 text-orange-600 dark:bg-orange-500/10 dark:border-orange-500/20 dark:text-orange-400 p-4 rounded-2xl shadow-sm">
+                            <i data-lucide="wifi-off" class="w-6 h-6 shrink-0"></i><span class="text-sm">১০ দিন পার হয়ে গেছে! এখনও <b>ওয়াইফাই বিল</b> পরিশোধ করা হয়নি।</span>
+                        </div>`;
+                    }
+                    html += `</div>`;
+                }
             }
+
+            html += `<div class="mb-4">
+                <p class="text-sm font-bold text-slate-400 dark:text-slate-500 mb-1">${dateStr}</p>
+                <h2 class="text-2xl font-bold mb-4">আজকের মেনু</h2>
+            </div>`;
 
             if(todayRoutine) {
                 html += `
                 <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 mb-6 shadow-xl text-white relative overflow-hidden">
                     <i data-lucide="chef-hat" class="absolute -right-6 -top-6 w-32 h-32 text-white/10 opacity-50 transform rotate-12"></i>
                     <div class="flex justify-between items-center mb-6 relative z-10">
-                        <div>
-                            <p class="text-xs text-indigo-100 font-semibold mb-1">আজকের মেনু</p>
-                            <span class="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-lg text-lg font-bold">${todayRoutine.day}</span>
-                        </div>
+                        <div><span class="bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-sm font-bold">${todayRoutine.day}</span></div>
                         ${isAdmin ? `<button class="edit-routine-btn p-2 bg-white/10 hover:bg-white/20 rounded-lg" data-id="${todayRoutine.id}"><i data-lucide="edit-3" class="w-4 h-4"></i></button>` : ''}
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
@@ -436,7 +461,6 @@
 
                     if(total <= 0) return showToast('সঠিক এমাউন্ট দিন!', 'error');
 
-                    // If Admin adds, it is auto-approved directly.
                     const autoApprove = isAdmin ? 'approved' : 'pending';
                     const payload = { id: String(Date.now()), type, date, total, status: autoApprove, items, shopper };
                     
