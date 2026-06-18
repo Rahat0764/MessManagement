@@ -84,7 +84,7 @@
         };
 
         const days = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
-        let activeTab = 'finance'; 
+        let activeTab = localStorage.getItem('mess_active_tab') || 'routine'; 
         let isAdmin = localStorage.getItem('mess_admin_token') === CONFIG.ADMIN_PASS;
         let isDark = true; 
 
@@ -203,7 +203,7 @@
                     if (resM.data) data.members = resM.data;
                     if (resE.data) data.expenses = resE.data;
                     if (resL.data) data.logs = resL.data;
-                } catch (err) { showToast('ডাটাবেজ থেকে ডেটা আনতে সমস্যা হচ্ছে!', 'error'); }
+                } catch (err) {}
             }
             await handleUrlActions();
             render();
@@ -369,7 +369,7 @@
             const remaining = totalFund - totalSpent;
 
             let expenseList = data.expenses.map(e => `
-                <div class="log-item p-4 border-b border-slate-100 dark:border-darkBorder/50 relative" data-search="${e.type.toLowerCase()} ${e.shopper?.toLowerCase() || ''} ${e.id}">
+                <div class="log-item p-4 border-b border-slate-100 dark:border-darkBorder/50 relative hover:bg-slate-800/30 transition-colors" data-search="${e.type.toLowerCase()} ${e.shopper?.toLowerCase() || ''} ${e.id}">
                     <div class="flex justify-between items-start">
                         <div class="flex gap-3">
                             <div class="p-2 rounded-xl h-fit ${e.type === 'বাজার' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-orange-500/10 text-orange-500'}"><i data-lucide="${e.type === 'বাজার' ? 'shopping-bag' : 'receipt'}" class="w-5 h-5"></i></div>
@@ -673,6 +673,7 @@
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 activeTab = e.currentTarget.dataset.tab;
+                localStorage.setItem('mess_active_tab', activeTab);
                 document.getElementById('app-content').classList.remove('fade-in');
                 void document.getElementById('app-content').offsetWidth;
                 document.getElementById('app-content').classList.add('fade-in');
