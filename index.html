@@ -76,23 +76,11 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Vercel ENV ঠিকমতো লোড করার জন্য ডাইরেক্ট ইম্পোর্ট সিস্টেম
-        let parsedFirebase = null;
         let envTgToken = '';
         let envTgChatId = '';
         let envAdminPass = 'admin123';
 
         try {
-            const rawFb = import.meta.env.VITE_FIREBASE_CONFIG;
-            if (rawFb) {
-                if (typeof rawFb === 'object') {
-                    parsedFirebase = rawFb;
-                } else if (typeof rawFb === 'string') {
-                    try { parsedFirebase = JSON.parse(rawFb); }
-                    catch(e) { try { parsedFirebase = new Function("return " + rawFb)(); } catch(err){} }
-                }
-            }
-            
             if (import.meta.env.VITE_TG_TOKEN) envTgToken = import.meta.env.VITE_TG_TOKEN;
             if (import.meta.env.VITE_TG_CHAT_ID) envTgChatId = import.meta.env.VITE_TG_CHAT_ID;
             if (import.meta.env.VITE_ADMIN_PASS) envAdminPass = import.meta.env.VITE_ADMIN_PASS;
@@ -101,10 +89,21 @@
         }
 
         const CONFIG = {
-            FIREBASE: parsedFirebase,
-            TG_TOKEN: envTgToken,
-            TG_CHAT_ID: envTgChatId,
-            ADMIN_PASS: envAdminPass,
+            // ফায়ারবেস কনফিগ হার্ডকোড করা হলো (কোনো ENV এরর আসবে না)
+            FIREBASE: {
+                apiKey: "AIzaSyCUjxJiEk4JxbsMsgbvObNgUYGzR-IZODY",
+                authDomain: "messmanagement69.firebaseapp.com",
+                projectId: "messmanagement69",
+                storageBucket: "messmanagement69.firebasestorage.app",
+                messagingSenderId: "238453836538",
+                appId: "1:238453836538:web:07036ddd4dd397a635d743"
+            },
+            
+            // ENV থেকে ডেটা নিবে
+            TG_TOKEN: envTgToken, 
+            TG_CHAT_ID: envTgChatId, 
+            ADMIN_PASS: envAdminPass, 
+            
             MONTHLY_FEE: 5000,
             REBATE_PER_DAY: 50,
             MIN_ABSENT_DAYS_FOR_REBATE: 3,
@@ -120,27 +119,18 @@
             ]
         };
 
-        const APP_ID = 'mess-manager-v2';
+        const APP_ID = 'mess-manager-final';
         const days = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
         let activeTab = 'routine';
+        
         let isAdmin = localStorage.getItem('mess_admin_token') === CONFIG.ADMIN_PASS;
+        
         let isDark = true;
         let db, auth;
         let data = { routine: [], members: [], expenses: [] };
         let bazaarItems = [{name: '', amount: ''}];
 
         const initApp = async () => {
-            if (!CONFIG.FIREBASE) {
-                document.getElementById('app-content').innerHTML = `
-                <div class="text-center mt-20 p-6 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 font-bold rounded-2xl border border-red-200 dark:border-red-800 shadow-lg">
-                    <i data-lucide="settings" class="w-12 h-12 mx-auto mb-3"></i>
-                    VITE_FIREBASE_CONFIG ঠিকমতো সেট করা নেই!<br>
-                    <span class="text-xs font-normal opacity-80 mt-2 block">দয়া করে Vercel-এর Environment Variable চেক করুন।</span>
-                </div>`;
-                lucide.createIcons();
-                return;
-            }
-
             try {
                 const app = initializeApp(CONFIG.FIREBASE);
                 auth = getAuth(app);
@@ -368,11 +358,20 @@
                         </div>
                     </div>
                     <div class="text-2xl font-bold text-slate-800 dark:text-white my-3">৳${e.total}</div>
+                    
                     ${e.type === 'বাজার' && e.items && e.items.length > 0 ? `
                         <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl text-xs space-y-2 mt-2 border border-slate-100 dark:border-darkBorder/50">
                             ${e.items.map(i=>`<div class="flex justify-between items-center"><span class="text-slate-600 dark:text-slate-300">${i.name}</span><span class="font-bold">৳${i.amount}</span></div>`).join('')}
                         </div>
                     ` : ''}
+                    
+                    ${e.type === 'অন্যান্য' && e.desc ? `
+                        <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl text-xs mt-2 border border-slate-100 dark:border-darkBorder/50">
+                            <span class="text-slate-500 dark:text-slate-400 font-bold block mb-1">বিবরণ:</span>
+                            <span class="text-slate-700 dark:text-slate-300">${e.desc}</span>
+                        </div>
+                    ` : ''}
+                    
                     <div class="flex gap-2 mt-4">
                         ${isAdmin && e.status === 'pending' ? `<button class="text-xs bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-md font-bold transition-colors approve-exp-btn" data-id="${e.id}">অ্যাপ্রুভ</button>` : ''}
                         ${isAdmin ? `<button class="text-xs bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500 px-4 py-2 rounded-lg font-bold transition-colors del-exp-btn" data-id="${e.id}">মুছুন</button>` : ''}
@@ -391,6 +390,7 @@
                             <label class="text-xs font-bold text-slate-500 mb-1 block">খরচের ধরণ</label>
                             <select id="expType" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="বাজার">বাজার</option>
+                                <option value="খালার বিল">খালার বিল</option>
                                 <option value="বাসা ভাড়া">বাসা ভাড়া</option>
                                 <option value="কারেন্ট বিল">কারেন্ট বিল</option>
                                 <option value="ওয়াইফাই বিল">ওয়াইফাই বিল</option>
@@ -419,6 +419,10 @@
                             <label class="text-xs font-bold text-slate-500 mb-1 block">মোট এমাউন্ট</label>
                             <input type="number" id="expTotal" placeholder="কত টাকা?" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
+                        <div id="otherDescSection" class="hidden pt-2 border-t border-slate-100 dark:border-darkBorder/50">
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">খরচের বিবরণ (ঐচ্ছিক)</label>
+                            <input type="text" id="expDesc" placeholder="কীসের জন্য খরচ?" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
                         <button id="submitExpBtn" class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-95 text-sm mt-4">সেভ করুন</button>
                         ${!isAdmin ? '<p class="text-[11px] text-center mt-2 text-slate-400"><i data-lucide="info" class="w-3 h-3 inline pb-0.5"></i> সাবমিট করলে এডমিনের কাছে অ্যাপ্রুভালের জন্য যাবে</p>' : ''}
                     </div>
@@ -439,7 +443,7 @@
             const totalSpent = data.expenses.filter(e => e.status === 'approved').reduce((sum, e) => sum + Number(e.total || 0), 0);
             const remaining = totalFund - totalSpent;
 
-            const cats = ['বাজার', 'বাসা ভাড়া', 'কারেন্ট বিল', 'ওয়াইফাই বিল', 'অন্যান্য'];
+            const cats = ['বাজার', 'খালার বিল', 'বাসা ভাড়া', 'কারেন্ট বিল', 'ওয়াইফাই বিল', 'অন্যান্য'];
             const catHtml = cats.map(c => {
                 const amt = data.expenses.filter(e => e.status === 'approved' && e.type === c).reduce((sum, e) => sum + Number(e.total), 0);
                 if(amt === 0) return '';
@@ -487,12 +491,19 @@
                 const typeSelect = document.getElementById('expType');
                 if(typeSelect) {
                     typeSelect.addEventListener('change', (e) => {
-                        if(e.target.value === 'বাজার') {
+                        const val = e.target.value;
+                        if(val === 'বাজার') {
                             document.getElementById('bazaarSection').classList.remove('hidden');
                             document.getElementById('otherSection').classList.add('hidden');
+                            document.getElementById('otherDescSection').classList.add('hidden');
+                        } else if(val === 'অন্যান্য') {
+                            document.getElementById('bazaarSection').classList.add('hidden');
+                            document.getElementById('otherSection').classList.remove('hidden');
+                            document.getElementById('otherDescSection').classList.remove('hidden');
                         } else {
                             document.getElementById('bazaarSection').classList.add('hidden');
                             document.getElementById('otherSection').classList.remove('hidden');
+                            document.getElementById('otherDescSection').classList.add('hidden');
                         }
                     });
                 }
@@ -512,7 +523,7 @@
                 document.getElementById('submitExpBtn')?.addEventListener('click', async () => {
                     const type = document.getElementById('expType').value;
                     const date = document.getElementById('expDate').value;
-                    let total = 0, items = [], shopper = '';
+                    let total = 0, items = [], shopper = '', desc = '';
 
                     if(type === 'বাজার') {
                         shopper = document.getElementById('expShopper').value;
@@ -521,6 +532,9 @@
                         total = items.reduce((sum, i) => sum + i.amount, 0);
                     } else {
                         total = Number(document.getElementById('expTotal').value);
+                        if (type === 'অন্যান্য') {
+                            desc = document.getElementById('expDesc').value;
+                        }
                     }
 
                     if(total <= 0) return alert('সঠিক এমাউন্ট দিন!');
@@ -529,6 +543,8 @@
                     if(type === 'বাজার') {
                         payload.items = items;
                         payload.shopper = shopper;
+                    } else if (type === 'অন্যান্য' && desc) {
+                        payload.desc = desc;
                     }
 
                     const btn = document.getElementById('submitExpBtn');
@@ -538,6 +554,11 @@
                         const newDoc = await addDoc(collection(db, 'artifacts', APP_ID, 'public', 'data', 'expenses'), payload);
                         if(!isAdmin) {
                             let msg = `<b>নতুন খরচ এন্ট্রি!</b>\nধরণ: ${type}\nটাকা: ৳${total}\n`;
+                            
+                            if (type === 'অন্যান্য' && desc) {
+                                msg += `বিবরণ: ${desc}\n`;
+                            }
+
                             if(type === 'বাজার') {
                                 msg += `বাজার করেছে: ${shopper}\n\nআইটেম:\n`;
                                 items.forEach(i => msg += `- ${i.name}: ৳${i.amount}\n`);
@@ -625,11 +646,15 @@
             
             document.getElementById('closeModal')?.addEventListener('click', hideModal);
             
-            // এই নিচের লাইনে ইভেন্ট লিসেনারটি মিসিং ছিল
             if(onSave) {
-                document.getElementById('saveRoutine')?.addEventListener('click', onSave);
-                document.getElementById('saveMember')?.addEventListener('click', onSave);
-                document.getElementById('checkPass')?.addEventListener('click', onSave); 
+                const saveRoutineBtn = document.getElementById('saveRoutine');
+                if(saveRoutineBtn) saveRoutineBtn.addEventListener('click', onSave);
+                
+                const saveMemberBtn = document.getElementById('saveMember');
+                if(saveMemberBtn) saveMemberBtn.addEventListener('click', onSave);
+                
+                const checkPassBtn = document.getElementById('checkPass');
+                if(checkPassBtn) checkPassBtn.addEventListener('click', onSave); 
             }
         };
         const hideModal = () => document.getElementById('modalContainer').classList.add('hidden');
