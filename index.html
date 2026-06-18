@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>মেস ম্যানেজমেন্ট</title>
+    <title>মেস ম্যানেজমেন্ট - Premium Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -101,6 +101,7 @@
             return d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear();
         };
 
+        const generateUniqueId = () => String(Date.now()) + '-' + Math.random().toString(36).substr(2, 5);
         const generateRefId = () => Math.random().toString(36).substr(2, 6).toUpperCase();
 
         const showToast = (msg, type = 'success') => {
@@ -152,10 +153,10 @@
             const logId = specificId || generateRefId();
             const timestamp = new Date().toLocaleString('bn-BD');
             
-            const isDuplicate = data.logs.some(l => l.action === action && l.details === details && (Date.now() - parseInt(l.id)) < 2000);
+            const isDuplicate = data.logs.some(l => l.action === action && l.details === details && (Date.now() - parseInt(l.id.split('-')[0])) < 2000);
             if(isDuplicate) return logId;
 
-            const newLog = { id: String(Date.now()), log_id: logId, action, details, timestamp };
+            const newLog = { id: generateUniqueId(), log_id: logId, action, details, timestamp };
             data.logs.unshift(newLog);
             if (supabase) await supabase.from('activity_logs').insert([newLog]);
             await sendTelegramMsg(`🔔 <b>${action}</b>\n📝 ${details}\n⏰ সময়: ${timestamp}\n🔑 Ref ID: #${logId}`);
@@ -370,7 +371,7 @@
 
             let expenseList = data.expenses.map(e => `
                 <div class="log-item p-4 border-b border-slate-100 dark:border-darkBorder/50 relative hover:bg-slate-800/30 transition-colors" data-search="${e.type.toLowerCase()} ${e.shopper?.toLowerCase() || ''} ${e.id}">
-                    <div class="flex justify-between items-start">
+                    <div class="flex justify-between items-start pr-8">
                         <div class="flex gap-3">
                             <div class="p-2 rounded-xl h-fit ${e.type === 'বাজার' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-orange-500/10 text-orange-500'}"><i data-lucide="${e.type === 'বাজার' ? 'shopping-bag' : 'receipt'}" class="w-5 h-5"></i></div>
                             <div>
@@ -386,28 +387,36 @@
                     ${e.items && e.items.length > 0 ? `<div class="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl mt-3 space-y-1.5 border dark:border-slate-700/50">${e.items.map(i=>`<div class="flex justify-between text-[11px]"><span class="text-slate-400">${i.name}</span><span class="font-bold">৳${i.amount}</span></div>`).join('')}</div>` : ''}
                     <div class="flex gap-2 mt-3 pl-11">
                         ${isAdmin && e.status === 'pending' ? `<button class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold approve-exp-btn" data-id="${e.id}">অ্যাপ্রুভ</button>` : ''}
-                        ${isAdmin ? `<button class="bg-rose-500/10 text-rose-500 px-3 py-1.5 rounded-lg text-xs font-bold del-exp-btn" data-id="${e.id}">মুছুন</button>` : ''}
                     </div>
+                    ${isAdmin ? `<button class="text-rose-500 absolute top-4 right-4 hover:bg-rose-500/20 p-1.5 rounded-lg del-exp-btn" data-id="${e.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
                 </div>
             `).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো খরচের রেকর্ড নেই</div>';
 
             const depositLogs = data.logs.filter(l => l.action.includes('জমা') || l.action.includes('মাইনাস') || l.action.includes('হিসাব') || l.action.includes('সদস্য') || l.action.includes('রিসেট'));
-            let depositHtml = depositLogs.map(l => `
+            let depositHtml = depositLogs.map(l => {
+                let amountHtml = '';
+                const amtMatch = l.details.match(/৳(\d+)/);
+                if(amtMatch && (l.action.includes('জমা') || l.action.includes('মাইনাস'))) {
+                    amountHtml = `<div class="text-right mt-1"><span class="text-base font-bold block ${l.action.includes('মাইনাস') ? 'text-rose-500' : 'text-emerald-500'}">৳${amtMatch[1]}</span></div>`;
+                }
+
+                return `
                 <div class="log-item p-4 border-b border-slate-100 dark:border-darkBorder/50 relative hover:bg-slate-800/30 transition-colors" data-search="${l.action.toLowerCase()} ${l.details.toLowerCase()} ${l.log_id?.toLowerCase() || ''}">
-                    <div class="flex justify-between items-start pr-6">
+                    <div class="flex justify-between items-start pr-8">
                         <div class="flex gap-3">
                             <div class="p-2 rounded-xl h-fit bg-indigo-500/10 text-indigo-500"><i data-lucide="piggy-bank" class="w-5 h-5"></i></div>
                             <div>
                                 <span class="font-bold text-sm text-slate-200">${l.action}</span>
                                 <span class="text-[9px] text-slate-500 ml-1 bg-slate-800 px-1 rounded">#${l.log_id || l.id.substring(l.id.length-5)}</span>
-                                <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">${l.details}</p>
+                                <p class="text-[11px] text-slate-400 mt-1 leading-relaxed pr-2">${l.details}</p>
                                 <p class="text-[9px] text-slate-500 mt-2"><i data-lucide="clock" class="inline w-3 h-3 pb-0.5"></i> ${l.timestamp}</p>
                             </div>
                         </div>
+                        ${amountHtml}
                     </div>
                     ${isAdmin ? `<button class="delete-log-btn text-rose-500 absolute top-4 right-4 hover:bg-rose-500/20 p-1.5 rounded-lg" data-id="${l.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
-                </div>
-            `).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো জমার হিস্ট্রি নেই</div>';
+                </div>`;
+            }).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো জমার হিস্ট্রি নেই</div>';
 
             return `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -472,7 +481,7 @@
                     if(total <= 0) return showToast('সঠিক এমাউন্ট দিন!', 'error');
 
                     const autoApprove = isAdmin ? 'approved' : 'pending';
-                    const expId = String(Date.now());
+                    const expId = generateUniqueId();
                     const payload = { id: expId, type, date, total, status: autoApprove, items, shopper };
                     
                     if (supabase) await supabase.from('expenses').insert([payload]);
@@ -534,8 +543,8 @@
                     `, async () => {
                         if(document.getElementById('delLogPass').value === CONFIG.ADMIN_PASS) {
                             if(supabase) await supabase.from('activity_logs').delete().eq('id', idToDel);
-                            data.logs = data.logs.filter(x => x.id !== idToDel);
-                            hideModal(); render(); showToast('হিস্ট্রি ডিলিট হয়েছে!', 'error');
+                            data.logs = data.logs.filter(x => String(x.id) !== String(idToDel));
+                            hideModal(); render(); showToast('হিস্ট্রি ডিলিট হয়েছে!', 'success');
                         } else showToast('ভুল পাসওয়ার্ড!', 'error');
                     });
                 }));
@@ -552,7 +561,7 @@
                             setTimeout(() => {
                                 showModal(`
                                     <h3 class="font-bold text-rose-500 text-lg mb-4 border-b border-slate-700 pb-3 text-center">চূড়ান্ত কনফার্মেশন (ধাপ ২/২)</h3>
-                                    <p class="text-xs text-rose-400 mb-4 text-center">এই কাজটি আর বাতিল (Undo) করা যাবে না। নিশ্চিত করতে আবার পাসওয়ার্ড দিন:</p>
+                                    <p class="text-xs text-rose-400 mb-4 text-center">এই কাজটি আর ফিরিয়ে আনা যাবে না (Undo করা যাবে না)। নিশ্চিত করতে আবার পাসওয়ার্ড দিন:</p>
                                     <input type="password" id="resetPass2" class="w-full p-3 bg-slate-800 border border-rose-500/50 text-center text-sm rounded-xl outline-none tracking-widest font-mono focus:border-rose-500" placeholder="কনফার্ম পাসওয়ার্ড">
                                     <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="btnFinalReset" class="flex-1 py-3 text-sm bg-rose-600 text-white rounded-xl font-bold shadow-lg shadow-rose-500/30">সব মুছে ফেলুন</button></div>
                                 `, async () => {
@@ -569,11 +578,9 @@
                                         await logActivity('সিস্টেম রিসেট', 'এডমিন দ্বারা নতুন মাসের জন্য সমস্ত হিসাব জিরো (0) করা হয়েছে।');
                                     } else showToast('ভুল পাসওয়ার্ড!', 'error');
                                 });
-                                document.getElementById('btnFinalReset')?.addEventListener('click', window._modalSaveCallback);
                             }, 200);
                         } else showToast('ভুল পাসওয়ার্ড!', 'error');
                     });
-                    document.getElementById('btnNextReset')?.addEventListener('click', window._modalSaveCallback);
                 });
             }
 
@@ -632,13 +639,12 @@
                 `, async () => {
                     const name = document.getElementById('new-m-name').value;
                     if(!name) return showToast('নাম ফাঁকা রাখা যাবে না!', 'error');
-                    const newId = String(Date.now());
+                    const newId = generateUniqueId();
                     const newM = { id: newId, name, paid: 0, borrowed: 0, absentDays: 0 };
                     if (supabase) { const { error } = await supabase.from('members').insert([newM]); if (error) return showToast('Error', 'error'); }
                     data.members.push(newM); hideModal(); render(); showToast('ডাটাবেজে নতুন সদস্য যোগ হয়েছে!');
                     await logActivity('নতুন সদস্য', `সিস্টেমে ${name} কে নতুন সদস্য হিসেবে যুক্ত করা হয়েছে।`);
                 });
-                document.getElementById('saveNewMember')?.addEventListener('click', window._modalSaveCallback);
             });
         };
 
@@ -648,10 +654,10 @@
             mc.classList.remove('hidden');
             document.getElementById('closeModal')?.addEventListener('click', hideModal);
             if(onSave) {
-                window._modalSaveCallback = onSave;
-                document.getElementById('saveRoutine')?.addEventListener('click', onSave);
-                document.getElementById('saveMember')?.addEventListener('click', onSave);
-                document.getElementById('checkPass')?.addEventListener('click', onSave);
+                const actionBtns = ['saveRoutine', 'saveMember', 'checkPass', 'confirmDelLog', 'btnNextReset', 'btnFinalReset', 'saveNewMember'];
+                actionBtns.forEach(id => {
+                    document.getElementById(id)?.addEventListener('click', onSave);
+                });
             }
             lucide.createIcons();
         };
