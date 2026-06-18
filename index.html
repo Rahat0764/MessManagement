@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>মেস ম্যানেজমেন্ট - Premium V3</title>
+    <title>মেস ম্যানেজমেন্ট - Premium V4</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -33,7 +33,6 @@
 </head>
 <body class="bg-slate-50 dark:bg-darkBg text-slate-800 dark:text-slate-100 transition-colors duration-300 flex flex-col h-screen overflow-hidden relative">
 
-    <!-- Top Header -->
     <header class="w-full glass-panel z-40 shrink-0 border-b border-slate-200 dark:border-darkBorder px-4 py-3">
         <div class="max-w-5xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -54,48 +53,32 @@
         </div>
     </header>
 
-    <!-- Main Content Box -->
     <div id="main-scroll-container" class="flex-1 overflow-y-auto w-full pb-32 pt-4 px-4 md:px-6 hide-scrollbar">
         <main id="app-content" class="max-w-5xl mx-auto fade-in"></main>
     </div>
 
-    <!-- Bottom Navigation -->
     <nav class="w-full glass-panel z-40 fixed bottom-0 left-0 border-t border-slate-200 dark:border-darkBorder pb-safe">
         <div class="max-w-5xl mx-auto flex justify-around items-center h-16 px-2">
-            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-indigo-600 dark:text-indigo-400" data-tab="routine">
-                <i data-lucide="calendar-days" class="w-6 h-6"></i><span class="text-[10px] font-bold">রুটিন</span>
-            </button>
-            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500" data-tab="finance">
-                <i data-lucide="users" class="w-5 h-5"></i><span class="text-[10px] font-bold">সদস্য</span>
-            </button>
-            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500" data-tab="expense">
-                <i data-lucide="shopping-cart" class="w-5 h-5"></i><span class="text-[10px] font-bold">খরচ</span>
-            </button>
-            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500" data-tab="overview">
-                <i data-lucide="pie-chart" class="w-5 h-5"></i><span class="text-[10px] font-bold">হিসাব</span>
-            </button>
+            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-indigo-600 dark:text-indigo-400" data-tab="routine"><i data-lucide="calendar-days" class="w-6 h-6"></i><span class="text-[10px] font-bold">রুটিন</span></button>
+            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500" data-tab="finance"><i data-lucide="users" class="w-5 h-5"></i><span class="text-[10px] font-bold">সদস্য</span></button>
+            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500" data-tab="expense"><i data-lucide="shopping-cart" class="w-5 h-5"></i><span class="text-[10px] font-bold">খরচ</span></button>
+            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500" data-tab="overview"><i data-lucide="pie-chart" class="w-5 h-5"></i><span class="text-[10px] font-bold">হিসাব</span></button>
         </div>
     </nav>
 
-    <!-- Modal & Toasts -->
     <div id="modalContainer" class="fixed inset-0 bg-slate-900/80 dark:bg-black/80 z-50 hidden flex justify-center items-center px-4 backdrop-blur-sm"></div>
     <div id="toast-container" class="fixed top-20 right-4 z-[60] flex flex-col gap-2 pointer-events-none"></div>
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/+esm';
 
-        // ENV Setup
         let envTgToken = import.meta.env?.VITE_TG_TOKEN || '';
         let envTgChatId = import.meta.env?.VITE_TG_CHAT_ID || '';
         let envAdminPass = import.meta.env?.VITE_ADMIN_PASS || 'admin123';
         let supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || '';
         let supabaseKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || '';
 
-        const CONFIG = {
-            TG_TOKEN: envTgToken, TG_CHAT_ID: envTgChatId, ADMIN_PASS: envAdminPass,
-            MONTHLY_FEE: 5000, REBATE_PER_DAY: 50, MIN_ABSENT_DAYS_FOR_REBATE: 3
-        };
-
+        const CONFIG = { TG_TOKEN: envTgToken, TG_CHAT_ID: envTgChatId, ADMIN_PASS: envAdminPass, MONTHLY_FEE: 5000, REBATE_PER_DAY: 50, MIN_ABSENT_DAYS_FOR_REBATE: 3 };
         const days = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
         let activeTab = 'routine';
         let isAdmin = localStorage.getItem('mess_admin_token') === CONFIG.ADMIN_PASS;
@@ -107,12 +90,10 @@
         let data = { routine: [], members: [], expenses: [], logs: [] };
         let bazaarItems = [{name: '', amount: ''}];
 
-        // Helper: Check if date is in current month and year
         const isCurrentMonth = (dateStr) => {
             if (!dateStr) return false;
             const d = new Date(dateStr);
-            const now = new Date();
-            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            return d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear();
         };
 
         const generateRefId = () => Math.random().toString(36).substr(2, 6).toUpperCase();
@@ -127,24 +108,59 @@
             setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = '0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
         };
 
-        const sendTelegramMsg = async (msg) => {
+        // Updated Telegram Bot Logic (Now supports inline buttons!)
+        const sendTelegramMsg = async (msg, expId = null) => {
             if (!CONFIG.TG_TOKEN || !CONFIG.TG_CHAT_ID) return;
             const chatIds = CONFIG.TG_CHAT_ID.split(',');
             const url = `https://api.telegram.org/bot${CONFIG.TG_TOKEN}/sendMessage`;
+            const domain = window.location.origin + window.location.pathname;
+
             for(let id of chatIds) {
-                fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ chat_id: id.trim(), text: msg, parse_mode: 'HTML' }) }).catch(()=>{});
+                let payload = { chat_id: id.trim(), text: msg, parse_mode: 'HTML' };
+                if (expId) {
+                    payload.reply_markup = {
+                        inline_keyboard: [[
+                            { text: "✅ Approve", url: `${domain}?action=approve_exp&id=${expId}&token=${CONFIG.ADMIN_PASS}` },
+                            { text: "❌ Reject", url: `${domain}?action=reject_exp&id=${expId}&token=${CONFIG.ADMIN_PASS}` }
+                        ]]
+                    };
+                }
+                fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) }).catch(()=>{});
             }
         };
 
-        const logActivity = async (action, details) => {
-            const logId = generateRefId();
+        const logActivity = async (action, details, specificId = null) => {
+            const logId = specificId || generateRefId();
             const timestamp = new Date().toLocaleString('bn-BD');
             const newLog = { id: String(Date.now()), log_id: logId, action, details, timestamp };
             
             data.logs.unshift(newLog);
             if (supabase) await supabase.from('activity_logs').insert([newLog]);
-            
-            await sendTelegramMsg(`🔔 <b>${action}</b>\n📝 ${details}\n⏰ সময়: ${timestamp}\n🔑 Ref ID: #${logId}`);
+            if (!specificId) await sendTelegramMsg(`🔔 <b>${action}</b>\n📝 ${details}\n⏰ সময়: ${timestamp}\n🔑 Ref ID: #${logId}`);
+            return logId;
+        };
+
+        // URL Action Handler (For Telegram Buttons)
+        const handleUrlActions = async () => {
+            const params = new URLSearchParams(window.location.search);
+            const action = params.get('action');
+            const id = params.get('id');
+            const token = params.get('token');
+
+            if (action && id && token) {
+                if (token === CONFIG.ADMIN_PASS) {
+                    if (action === 'approve_exp') {
+                        if (supabase) await supabase.from('expenses').update({ status: 'approved' }).eq('id', id);
+                        await logActivity('Expense Approved via Telegram', `Ref #${id} অনুমোদিত হয়েছে।`, id);
+                        alert('✅ খরচটি সফলভাবে অ্যাপ্রুভ হয়েছে!');
+                    } else if (action === 'reject_exp') {
+                        if (supabase) await supabase.from('expenses').delete().eq('id', id);
+                        await logActivity('Expense Rejected via Telegram', `Ref #${id} বাতিল করা হয়েছে।`, id);
+                        alert('❌ খরচটি বাতিল করে ডিলিট করা হয়েছে!');
+                    }
+                } else { alert('ভুল এডমিন টোকেন!'); }
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
         };
 
         const initApp = async () => {
@@ -157,7 +173,7 @@
                         supabase.from('routine').select('*').order('id'),
                         supabase.from('members').select('*').order('id'),
                         supabase.from('expenses').select('*').order('date', { ascending: false }),
-                        supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }).limit(20)
+                        supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }).limit(30)
                     ]);
                     if (resR.data) data.routine = resR.data;
                     if (resM.data) data.members = resM.data;
@@ -165,6 +181,7 @@
                     if (resL.data) data.logs = resL.data;
                 } catch (err) { console.log(err); }
             }
+            await handleUrlActions();
             render();
         };
 
@@ -184,33 +201,19 @@
             const dateStr = new Date().toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' });
             let html = '';
 
-            // Smart Alert Logic (Checks if rent/wifi is paid for CURRENT month and approved)
             if (currentDayNumber > 10) {
                 const isRentPaid = data.expenses.some(e => e.type === 'বাসা ভাড়া' && e.status === 'approved' && isCurrentMonth(e.date));
                 const isWifiPaid = data.expenses.some(e => e.type === 'ওয়াইফাই বিল' && e.status === 'approved' && isCurrentMonth(e.date));
 
                 if (!isRentPaid || !isWifiPaid) {
                     html += `<div class="space-y-3 mb-6">`;
-                    if (!isRentPaid) {
-                        html += `
-                        <div class="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400 p-4 rounded-2xl shadow-sm">
-                            <i data-lucide="alert-triangle" class="w-6 h-6 shrink-0"></i><span class="text-sm">আজ মাসের <b>${currentDayNumber} তারিখ</b>, এখনো <b>বাসা ভাড়া</b> দেওয়া হয়নি!</span>
-                        </div>`;
-                    }
-                    if (!isWifiPaid) {
-                        html += `
-                        <div class="flex items-center gap-3 bg-orange-50 border border-orange-200 text-orange-600 dark:bg-orange-500/10 dark:border-orange-500/20 dark:text-orange-400 p-4 rounded-2xl shadow-sm">
-                            <i data-lucide="wifi-off" class="w-6 h-6 shrink-0"></i><span class="text-sm">১০ দিন পার হয়ে গেছে! এখনও <b>ওয়াইফাই বিল</b> পরিশোধ করা হয়নি।</span>
-                        </div>`;
-                    }
+                    if (!isRentPaid) html += `<div class="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/20 dark:text-rose-400 p-4 rounded-2xl shadow-sm"><i data-lucide="alert-triangle" class="w-6 h-6 shrink-0"></i><span class="text-sm">আজ মাসের <b>${currentDayNumber} তারিখ</b>, এখনো <b>বাসা ভাড়া</b> দেওয়া হয়নি!</span></div>`;
+                    if (!isWifiPaid) html += `<div class="flex items-center gap-3 bg-orange-50 border border-orange-200 text-orange-600 dark:bg-orange-500/10 dark:border-orange-500/20 dark:text-orange-400 p-4 rounded-2xl shadow-sm"><i data-lucide="wifi-off" class="w-6 h-6 shrink-0"></i><span class="text-sm">১০ দিন পার হয়ে গেছে! এখনও <b>ওয়াইফাই বিল</b> পরিশোধ করা হয়নি।</span></div>`;
                     html += `</div>`;
                 }
             }
 
-            html += `<div class="mb-4">
-                <p class="text-sm font-bold text-slate-400 dark:text-slate-500 mb-1">${dateStr}</p>
-                <h2 class="text-2xl font-bold mb-4">আজকের মেনু</h2>
-            </div>`;
+            html += `<div class="mb-4"><p class="text-sm font-bold text-slate-400 dark:text-slate-500 mb-1">${dateStr}</p><h2 class="text-2xl font-bold mb-4">আজকের মেনু</h2></div>`;
 
             if(todayRoutine) {
                 html += `
@@ -221,33 +224,18 @@
                         ${isAdmin ? `<button class="edit-routine-btn p-2 bg-white/10 hover:bg-white/20 rounded-lg" data-id="${todayRoutine.id}"><i data-lucide="edit-3" class="w-4 h-4"></i></button>` : ''}
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
-                        <div class="bg-white/10 backdrop-blur border border-white/20 p-4 rounded-2xl">
-                            <div class="flex items-center gap-2 text-indigo-100 mb-1 font-semibold text-xs"><i data-lucide="sunrise" class="w-4 h-4"></i> সকাল</div>
-                            <div class="text-lg font-bold">${todayRoutine.b || 'নির্ধারিত নেই'}</div>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur border border-white/20 p-4 rounded-2xl">
-                            <div class="flex items-center gap-2 text-indigo-100 mb-1 font-semibold text-xs"><i data-lucide="sun" class="w-4 h-4"></i> দুপুর</div>
-                            <div class="text-lg font-bold">${todayRoutine.l || 'নির্ধারিত নেই'}</div>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur border border-white/20 p-4 rounded-2xl">
-                            <div class="flex items-center gap-2 text-indigo-100 mb-1 font-semibold text-xs"><i data-lucide="moon" class="w-4 h-4"></i> রাত</div>
-                            <div class="text-lg font-bold">${todayRoutine.d || 'নির্ধারিত নেই'}</div>
-                        </div>
+                        <div class="bg-white/10 backdrop-blur border border-white/20 p-4 rounded-2xl"><div class="flex items-center gap-2 text-indigo-100 mb-1 font-semibold text-xs"><i data-lucide="sunrise" class="w-4 h-4"></i> সকাল</div><div class="text-lg font-bold">${todayRoutine.b || 'নির্ধারিত নেই'}</div></div>
+                        <div class="bg-white/10 backdrop-blur border border-white/20 p-4 rounded-2xl"><div class="flex items-center gap-2 text-indigo-100 mb-1 font-semibold text-xs"><i data-lucide="sun" class="w-4 h-4"></i> দুপুর</div><div class="text-lg font-bold">${todayRoutine.l || 'নির্ধারিত নেই'}</div></div>
+                        <div class="bg-white/10 backdrop-blur border border-white/20 p-4 rounded-2xl"><div class="flex items-center gap-2 text-indigo-100 mb-1 font-semibold text-xs"><i data-lucide="moon" class="w-4 h-4"></i> রাত</div><div class="text-lg font-bold">${todayRoutine.d || 'নির্ধারিত নেই'}</div></div>
                     </div>
                 </div>`;
             }
 
             html += `<div class="glass-panel rounded-3xl shadow-sm border border-slate-200 dark:border-darkBorder overflow-hidden">
-                <div class="p-5 border-b border-slate-200 dark:border-darkBorder bg-slate-50/50 dark:bg-slate-800/30">
-                    <h3 class="font-bold text-lg flex items-center gap-2"><i data-lucide="calendar-days" class="w-5 h-5 text-indigo-500"></i> সাপ্তাহিক বিস্তারিত রুটিন</h3>
-                </div>
+                <div class="p-5 border-b border-slate-200 dark:border-darkBorder bg-slate-50/50 dark:bg-slate-800/30"><h3 class="font-bold text-lg flex items-center gap-2"><i data-lucide="calendar-days" class="w-5 h-5 text-indigo-500"></i> সাপ্তাহিক বিস্তারিত রুটিন</h3></div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left whitespace-nowrap">
-                        <thead>
-                            <tr class="text-slate-500 border-b border-slate-100 dark:border-darkBorder/50 text-sm">
-                                <th class="p-4 font-semibold">বার</th><th class="p-4 font-semibold">সকাল</th><th class="p-4 font-semibold">দুপুর</th><th class="p-4 font-semibold">রাত</th>${isAdmin ? '<th class="p-4 text-right">এডিট</th>' : ''}
-                            </tr>
-                        </thead>
+                        <thead><tr class="text-slate-500 border-b border-slate-100 dark:border-darkBorder/50 text-sm"><th class="p-4 font-semibold">বার</th><th class="p-4 font-semibold">সকাল</th><th class="p-4 font-semibold">দুপুর</th><th class="p-4 font-semibold">রাত</th>${isAdmin ? '<th class="p-4 text-right">এডিট</th>' : ''}</tr></thead>
                         <tbody>
                             ${data.routine.length ? data.routine.map(r => `
                                 <tr class="border-b border-slate-50 dark:border-darkBorder/30 text-sm ${r.day === today ? 'bg-indigo-50/50 dark:bg-indigo-500/10' : ''}">
@@ -274,9 +262,7 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
 
-            if(data.members.length === 0) {
-                html += `<div class="col-span-full p-8 text-center text-slate-500 glass-panel rounded-3xl">কোনো সদস্য নেই। এডমিন প্যানেল থেকে সদস্য যোগ করুন।</div>`;
-            }
+            if(data.members.length === 0) html += `<div class="col-span-full p-8 text-center text-slate-500 glass-panel rounded-3xl">কোনো সদস্য নেই। এডমিন প্যানেল থেকে সদস্য যোগ করুন।</div>`;
 
             html += data.members.map(m => {
                 let absent = m.absentDays || 0;
@@ -285,29 +271,16 @@
                 let netBalance = (m.paid || 0) - mealCost - (m.borrowed || 0);
                 
                 let badgeColor, badgeText, badgeIcon, textColor;
-                if (netBalance > 0) {
-                    badgeColor = 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20';
-                    textColor = 'text-emerald-600 dark:text-emerald-400';
-                    badgeText = 'বাসা থেকে পাবে'; badgeIcon = 'plus-circle';
-                } else if (netBalance < 0) {
-                    badgeColor = 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20';
-                    textColor = 'text-rose-600 dark:text-rose-400';
-                    badgeText = 'বাসায় বাকি'; badgeIcon = 'minus-circle';
-                } else {
-                    badgeColor = 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700';
-                    textColor = 'text-slate-600 dark:text-slate-400';
-                    badgeText = 'হিসাব ক্লিয়ার'; badgeIcon = 'check-circle-2';
-                }
+                if (netBalance > 0) { badgeColor = 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20'; textColor = 'text-emerald-600 dark:text-emerald-400'; badgeText = 'বাসা থেকে পাবে'; badgeIcon = 'plus-circle'; }
+                else if (netBalance < 0) { badgeColor = 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20'; textColor = 'text-rose-600 dark:text-rose-400'; badgeText = 'বাসায় বাকি'; badgeIcon = 'minus-circle'; }
+                else { badgeColor = 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'; textColor = 'text-slate-600 dark:text-slate-400'; badgeText = 'হিসাব ক্লিয়ার'; badgeIcon = 'check-circle-2'; }
 
                 return `
                 <div class="glass-panel p-5 rounded-3xl border border-slate-200 dark:border-darkBorder shadow-sm relative overflow-hidden">
                     ${isAdmin ? `<button class="edit-member-btn absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl hover:text-indigo-500" data-id="${m.id}"><i data-lucide="edit-2" class="w-4 h-4"></i></button>` : ''}
                     <div class="flex items-center gap-4 mb-4">
                         <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-100 to-purple-200 dark:from-indigo-900 dark:to-purple-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-xl">${m.name.charAt(0)}</div>
-                        <div>
-                            <h4 class="font-bold text-lg">${m.name}</h4>
-                            <p class="text-xs text-slate-500">অফ: ${absent} দিন (রিবেট ৳${rebate})</p>
-                        </div>
+                        <div><h4 class="font-bold text-lg">${m.name}</h4><p class="text-xs text-slate-500">অফ: ${absent} দিন (রিবেট ৳${rebate})</p></div>
                     </div>
                     <div class="grid grid-cols-2 gap-2 mb-4 text-sm border-t border-b border-slate-100 dark:border-darkBorder/50 py-3">
                         <div class="flex justify-between"><span class="text-slate-500">জমা:</span> <span class="font-bold text-emerald-500">৳${m.paid || 0}</span></div>
@@ -342,7 +315,7 @@
                                 <i data-lucide="${e.type === 'বাজার' ? 'shopping-bag' : 'receipt'}" class="w-5 h-5"></i>
                             </div>
                             <div>
-                                <span class="font-bold text-sm">${e.type}</span>
+                                <span class="font-bold text-sm">${e.type}</span> <span class="text-[9px] text-slate-500 ml-1 bg-slate-800 px-1 rounded">#${e.id.substring(e.id.length-5)}</span>
                                 <p class="text-[11px] text-slate-400 mt-0.5">${e.date} ${e.shopper ? `• <b>${e.shopper}</b>` : ''}</p>
                             </div>
                         </div>
@@ -351,10 +324,7 @@
                             <span class="text-[9px] px-2 py-0.5 rounded-full font-bold ${e.status === 'approved' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'}">${e.status === 'approved' ? 'Approved' : 'Pending'}</span>
                         </div>
                     </div>
-                    ${e.items && e.items.length > 0 ? `
-                        <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl mt-3 space-y-2 border dark:border-slate-700/50">
-                            ${e.items.map(i=>`<div class="flex justify-between text-xs"><span class="text-slate-500">${i.name}</span><span class="font-bold">৳${i.amount}</span></div>`).join('')}
-                        </div>` : ''}
+                    ${e.items && e.items.length > 0 ? `<div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl mt-3 space-y-2 border dark:border-slate-700/50">${e.items.map(i=>`<div class="flex justify-between text-xs"><span class="text-slate-500">${i.name}</span><span class="font-bold">৳${i.amount}</span></div>`).join('')}</div>` : ''}
                     <div class="flex gap-2 mt-3 pl-11">
                         ${isAdmin && e.status === 'pending' ? `<button class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold approve-exp-btn" data-id="${e.id}">অ্যাপ্রুভ</button>` : ''}
                         ${isAdmin ? `<button class="bg-rose-500/10 text-rose-500 px-3 py-1.5 rounded-lg text-xs font-bold del-exp-btn" data-id="${e.id}">মুছুন</button>` : ''}
@@ -367,22 +337,11 @@
                 <div class="lg:col-span-2 glass-panel rounded-3xl border border-slate-200 dark:border-darkBorder p-6 h-fit shadow-sm">
                     <h3 class="font-bold text-lg mb-5 flex items-center gap-2"><div class="p-2 bg-indigo-500/10 text-indigo-500 rounded-lg"><i data-lucide="plus-circle" class="w-5 h-5"></i></div> নতুন খরচ</h3>
                     <div class="space-y-4">
-                        <div>
-                            <select id="expType" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none">
-                                <option value="বাজার">বাজার</option><option value="খালার বিল">খালার বিল</option><option value="বাসা ভাড়া">বাসা ভাড়া</option><option value="কারেন্ট বিল">কারেন্ট বিল</option><option value="ওয়াইফাই বিল">ওয়াইফাই বিল</option><option value="অন্যান্য">অন্যান্য</option>
-                            </select>
-                        </div>
-                        <div>
-                            <input type="date" id="expDate" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none" value="${new Date().toISOString().split('T')[0]}">
-                        </div>
+                        <div><select id="expType" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none"><option value="বাজার">বাজার</option><option value="খালার বিল">খালার বিল</option><option value="বাসা ভাড়া">বাসা ভাড়া</option><option value="কারেন্ট বিল">কারেন্ট বিল</option><option value="ওয়াইফাই বিল">ওয়াইফাই বিল</option><option value="অন্যান্য">অন্যান্য</option></select></div>
+                        <div><input type="date" id="expDate" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none" value="${new Date().toISOString().split('T')[0]}"></div>
                         <div id="bazaarSection" class="space-y-4 pt-2 border-t dark:border-slate-700/50">
-                            <select id="expShopper" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none">
-                                <option value="">-- বাজারকারীর নাম --</option>${membersOptions}
-                            </select>
-                            <div>
-                                <div id="bazaarItemsContainer">${itemsHtml}</div>
-                                <button id="addBazaarItemBtn" class="w-full mt-2 py-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-500 flex justify-center items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> আরও আইটেম</button>
-                            </div>
+                            <select id="expShopper" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none"><option value="">-- বাজারকারীর নাম --</option>${membersOptions}</select>
+                            <div><div id="bazaarItemsContainer">${itemsHtml}</div><button id="addBazaarItemBtn" class="w-full mt-2 py-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-500 flex justify-center items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> আরও আইটেম</button></div>
                         </div>
                         <div id="otherSection" class="hidden pt-2 border-t dark:border-slate-700/50">
                             <input type="number" id="expTotal" placeholder="মোট টাকার পরিমাণ?" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none">
@@ -391,10 +350,7 @@
                     </div>
                 </div>
                 <div class="lg:col-span-3 glass-panel rounded-3xl border border-slate-200 dark:border-darkBorder overflow-hidden flex flex-col h-full max-h-[600px] shadow-sm">
-                    <div class="p-5 border-b border-slate-200 dark:border-darkBorder bg-slate-50/50 dark:bg-slate-800/30 flex justify-between items-center">
-                        <h3 class="font-bold text-lg">খরচের হিস্টোরি</h3>
-                        <span class="text-xs font-bold bg-slate-200 dark:bg-slate-700 px-2.5 py-1 rounded-lg">${data.expenses.length} টি</span>
-                    </div>
+                    <div class="p-5 border-b border-slate-200 dark:border-darkBorder bg-slate-50/50 dark:bg-slate-800/30 flex justify-between items-center"><h3 class="font-bold text-lg">খরচের হিস্টোরি</h3><span class="text-xs font-bold bg-slate-200 dark:bg-slate-700 px-2.5 py-1 rounded-lg">${data.expenses.length} টি</span></div>
                     <div class="overflow-y-auto hide-scrollbar flex-1">${expenseList}</div>
                 </div>
             </div>`;
@@ -407,45 +363,26 @@
 
             return `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-                <div class="bg-gradient-to-br from-indigo-500 to-blue-600 p-6 rounded-3xl shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden">
-                    <i data-lucide="wallet" class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 transform rotate-12"></i>
-                    <span class="text-xs font-bold block uppercase tracking-wider text-indigo-100 mb-2">মোট ফান্ড কালেকশন</span>
-                    <h3 class="text-4xl font-bold relative z-10">৳${totalFund}</h3>
-                </div>
-                <div class="bg-gradient-to-br from-rose-500 to-orange-500 p-6 rounded-3xl shadow-xl shadow-rose-500/20 text-white relative overflow-hidden">
-                    <i data-lucide="trending-down" class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 transform rotate-12"></i>
-                    <span class="text-xs font-bold block uppercase tracking-wider text-rose-100 mb-2">মোট খরচ (Approved)</span>
-                    <h3 class="text-4xl font-bold relative z-10">৳${totalSpent}</h3>
-                </div>
-                <div class="bg-gradient-to-br from-emerald-500 to-teal-500 p-6 rounded-3xl shadow-xl shadow-emerald-500/20 text-white relative overflow-hidden">
-                    <i data-lucide="piggy-bank" class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 transform rotate-12"></i>
-                    <span class="text-xs font-bold block uppercase tracking-wider text-emerald-100 mb-2">বর্তমান ব্যালেন্স</span>
-                    <h3 class="text-4xl font-bold relative z-10">৳${remaining}</h3>
-                </div>
-            </div>`;
+                <div class="bg-gradient-to-br from-indigo-500 to-blue-600 p-6 rounded-3xl shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden"><i data-lucide="wallet" class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 transform rotate-12"></i><span class="text-xs font-bold block uppercase tracking-wider text-indigo-100 mb-2">মোট ফান্ড কালেকশন</span><h3 class="text-4xl font-bold relative z-10">৳${totalFund}</h3></div>
+                <div class="bg-gradient-to-br from-rose-500 to-orange-500 p-6 rounded-3xl shadow-xl shadow-rose-500/20 text-white relative overflow-hidden"><i data-lucide="trending-down" class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 transform rotate-12"></i><span class="text-xs font-bold block uppercase tracking-wider text-rose-100 mb-2">মোট খরচ (Approved)</span><h3 class="text-4xl font-bold relative z-10">৳${totalSpent}</h3></div>
+                <div class="bg-gradient-to-br from-emerald-500 to-teal-500 p-6 rounded-3xl shadow-xl shadow-emerald-500/20 text-white relative overflow-hidden"><i data-lucide="piggy-bank" class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 transform rotate-12"></i><span class="text-xs font-bold block uppercase tracking-wider text-emerald-100 mb-2">বর্তমান ব্যালেন্স</span><h3 class="text-4xl font-bold relative z-10">৳${remaining}</h3></div>
+            </div>
+            ${isAdmin ? `<button id="resetAllBtn" class="w-full mt-4 py-4 bg-rose-500/10 text-rose-500 font-bold rounded-2xl border border-rose-500/30 hover:bg-rose-500/20 transition-colors flex items-center justify-center gap-2"><i data-lucide="alert-triangle" class="w-5 h-5"></i> সম্পূর্ণ হিসাব রিসেট করুন (নতুন মাস)</button>` : ''}
+            `;
         };
 
         const attachDynamicListeners = () => {
             if(activeTab === 'expense') {
                 const typeSelect = document.getElementById('expType');
-                if(typeSelect) {
-                    typeSelect.addEventListener('change', (e) => {
-                        if(e.target.value === 'বাজার') {
-                            document.getElementById('bazaarSection').classList.remove('hidden');
-                            document.getElementById('otherSection').classList.add('hidden');
-                        } else {
-                            document.getElementById('bazaarSection').classList.add('hidden');
-                            document.getElementById('otherSection').classList.remove('hidden');
-                        }
-                    });
-                }
+                if(typeSelect) typeSelect.addEventListener('change', (e) => {
+                    if(e.target.value === 'বাজার') { document.getElementById('bazaarSection').classList.remove('hidden'); document.getElementById('otherSection').classList.add('hidden'); }
+                    else { document.getElementById('bazaarSection').classList.add('hidden'); document.getElementById('otherSection').classList.remove('hidden'); }
+                });
 
                 document.getElementById('addBazaarItemBtn')?.addEventListener('click', () => { bazaarItems.push({name: '', amount: ''}); render(); });
                 document.querySelectorAll('.bazaar-name').forEach(el => el.addEventListener('input', (e) => bazaarItems[e.target.dataset.idx].name = e.target.value));
                 document.querySelectorAll('.bazaar-amount').forEach(el => el.addEventListener('input', (e) => bazaarItems[e.target.dataset.idx].amount = e.target.value));
-                document.querySelectorAll('.remove-bazaar-btn').forEach(el => el.addEventListener('click', (e) => {
-                    const idx = e.currentTarget.dataset.idx; if(bazaarItems.length > 1) { bazaarItems.splice(idx, 1); render(); }
-                }));
+                document.querySelectorAll('.remove-bazaar-btn').forEach(el => el.addEventListener('click', (e) => { const idx = e.currentTarget.dataset.idx; if(bazaarItems.length > 1) { bazaarItems.splice(idx, 1); render(); } }));
 
                 document.getElementById('submitExpBtn')?.addEventListener('click', async () => {
                     const type = document.getElementById('expType').value;
@@ -462,35 +399,39 @@
                     if(total <= 0) return showToast('সঠিক এমাউন্ট দিন!', 'error');
 
                     const autoApprove = isAdmin ? 'approved' : 'pending';
-                    const payload = { id: String(Date.now()), type, date, total, status: autoApprove, items, shopper };
+                    const expId = String(Date.now());
+                    const payload = { id: expId, type, date, total, status: autoApprove, items, shopper };
                     
                     if (supabase) await supabase.from('expenses').insert([payload]);
                     data.expenses.unshift(payload);
-                    
-                    bazaarItems = [{name: '', amount: ''}];
-                    render();
+                    bazaarItems = [{name: '', amount: ''}]; render();
                     showToast(isAdmin ? 'খরচ সরাসরি অ্যাপ্রুভ হয়েছে!' : 'খরচ সেভ হয়েছে, পেন্ডিং আছে।');
-                    await logActivity('নতুন খরচ যুক্ত', `${type} খাতে ৳${total} এন্ট্রি হয়েছে।`);
+                    
+                    const msg = `🔔 <b>নতুন খরচ যুক্ত</b>\n📋 খাত: ${type}\n💰 পরিমাণ: ৳${total}\n${shopper ? `👤 মারফত: ${shopper}\n` : ''}🔑 ID: #${expId.substring(expId.length-5)}`;
+                    
+                    // If not admin, send message with Approve/Reject buttons
+                    if (!isAdmin) {
+                        await sendTelegramMsg(msg, expId); 
+                    } else {
+                        await sendTelegramMsg(msg + '\n✅ (Admin Auto-Approved)');
+                    }
+                    
+                    await logActivity('নতুন খরচ যুক্ত', `${type} খাতে ৳${total} এন্ট্রি হয়েছে।`, expId);
                 });
 
                 document.querySelectorAll('.approve-exp-btn').forEach(btn => btn.addEventListener('click', async (e) => {
                     const id = e.target.dataset.id;
                     if (supabase) await supabase.from('expenses').update({ status: 'approved' }).eq('id', id);
                     const item = data.expenses.find(x => x.id === id);
-                    if(item) {
-                        item.status = 'approved'; render(); showToast('অ্যাপ্রুভ করা হয়েছে!');
-                        await logActivity('খরচ অ্যাপ্রুভাল', `${item.type} খাতের ৳${item.total} এন্ট্রি অ্যাপ্রুভ করা হয়েছে।`);
-                    }
+                    if(item) { item.status = 'approved'; render(); showToast('অ্যাপ্রুভ করা হয়েছে!'); await logActivity('খরচ অ্যাপ্রুভাল', `${item.type} খাতের ৳${item.total} এন্ট্রি অ্যাপ্রুভ করা হয়েছে।`, id); }
                 }));
 
                 document.querySelectorAll('.del-exp-btn').forEach(btn => btn.addEventListener('click', async (e) => {
                     if(confirm('এটি মুছে ফেলতে চান?')) {
-                        const id = e.target.dataset.id;
-                        const item = data.expenses.find(x => x.id === id);
+                        const id = e.target.dataset.id; const item = data.expenses.find(x => x.id === id);
                         if (supabase) await supabase.from('expenses').delete().eq('id', id);
-                        data.expenses = data.expenses.filter(x => x.id !== id);
-                        render(); showToast('মুছে ফেলা হয়েছে!', 'error');
-                        if(item) await logActivity('খরচ ডিলিট', `${item.type} খাতের ৳${item.total} এন্ট্রি মুছে ফেলা হয়েছে।`);
+                        data.expenses = data.expenses.filter(x => x.id !== id); render(); showToast('মুছে ফেলা হয়েছে!', 'error');
+                        if(item) await logActivity('খরচ ডিলিট', `${item.type} খাতের ৳${item.total} এন্ট্রি মুছে ফেলা হয়েছে।`, id);
                     }
                 }));
             }
@@ -505,12 +446,11 @@
                         <div><label class="text-xs font-bold text-slate-500 mb-1 block">দুপুর</label><input type="text" id="er-l" value="${r.l || ''}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
                         <div><label class="text-xs font-bold text-slate-500 mb-1 block">রাত</label><input type="text" id="er-d" value="${r.d || ''}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
                     </div>
-                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="saveRoutine" class="flex-1 py-3 text-sm bg-indigo-600 text-white rounded-xl font-bold">সেভ করুন</button></div>
+                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="saveRoutine" class="flex-1 py-3 text-sm bg-indigo-600 text-white rounded-xl font-bold">সেভ</button></div>
                 `, async () => {
                     const updated = { b: document.getElementById('er-b').value, l: document.getElementById('er-l').value, d: document.getElementById('er-d').value };
                     if (supabase) await supabase.from('routine').update(updated).eq('id', r.id);
-                    Object.assign(r, updated);
-                    hideModal(); render(); showToast('রুটিন আপডেট হয়েছে!');
+                    Object.assign(r, updated); hideModal(); render(); showToast('রুটিন আপডেট হয়েছে!');
                     await logActivity('রুটিন আপডেট', `${r.day} বারের খাবারের মেনু পরিবর্তন করা হয়েছে।`);
                 });
             }));
@@ -523,35 +463,95 @@
                     <div class="space-y-4">
                         <div><label class="text-xs font-bold text-slate-500 mb-1 block">মোট জমা (৳)</label><input type="number" id="em-p" value="${m.paid || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
                         <div><label class="text-xs font-bold text-slate-500 mb-1 block">মাইনাস/ধার (৳)</label><input type="number" id="em-b" value="${m.borrowed || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
-                        <div><label class="text-xs font-bold text-slate-500 mb-1 flex justify-between"><span>বন্ধ থাকা দিন</span> <span class="text-[10px] bg-indigo-100 text-indigo-600 px-2 rounded">রিবেটের জন্য</span></label><input type="number" id="em-a" value="${m.absentDays || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">বন্ধ থাকা দিন</label><input type="number" id="em-a" value="${m.absentDays || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
                     </div>
                     <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="saveMember" class="flex-1 py-3 text-sm bg-indigo-600 text-white rounded-xl font-bold">আপডেট</button></div>
                 `, async () => {
                     const updated = { paid: Number(document.getElementById('em-p').value), borrowed: Number(document.getElementById('em-b').value), absentDays: Number(document.getElementById('em-a').value) };
                     if (supabase) await supabase.from('members').update(updated).eq('id', m.id);
-                    Object.assign(m, updated);
-                    hideModal(); render(); showToast('হিসাব সেভ হয়েছে!');
+                    Object.assign(m, updated); hideModal(); render(); showToast('হিসাব সেভ হয়েছে!');
                     await logActivity('সদস্য হিসাব আপডেট', `${m.name} এর প্রোফাইলের জমা/বাকি আপডেট করা হয়েছে।`);
                 });
             }));
 
-            document.getElementById('addMemberBtn')?.addEventListener('click', () => {
+            // DOUBLE PASSWORD RESET SYSTEM
+            document.getElementById('resetAllBtn')?.addEventListener('click', () => {
                 showModal(`
-                    <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-3">নতুন সদস্য যোগ করুন</h3>
-                    <div><label class="text-xs font-bold text-slate-500 mb-1 block">সদস্যের নাম</label><input type="text" id="new-m-name" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
-                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="saveNewMember" class="flex-1 py-3 text-sm bg-indigo-600 text-white rounded-xl font-bold">যোগ করুন</button></div>
-                `, async () => {
-                    const name = document.getElementById('new-m-name').value;
-                    if(!name) return showToast('নাম ফাঁকা রাখা যাবে না!', 'error');
-                    const newId = String(Date.now());
-                    const newM = { id: newId, name, paid: 0, borrowed: 0, absentDays: 0 };
-                    if (supabase) await supabase.from('members').insert([newM]);
-                    data.members.push(newM);
-                    hideModal(); render(); showToast('নতুন সদস্য যোগ হয়েছে!');
-                    await logActivity('নতুন সদস্য', `সিস্টেমে ${name} কে নতুন সদস্য হিসেবে যুক্ত করা হয়েছে।`);
+                    <h3 class="font-bold text-rose-500 text-lg mb-4 border-b border-slate-700 pb-3 text-center">সতর্কতা: রিসেট করুন (ধাপ ১/২)</h3>
+                    <p class="text-xs text-slate-400 mb-4 text-center">আপনি কি নিশ্চিত? সবার টাকা এবং খরচের হিসাব ডিলিট হয়ে যাবে। এডমিন পাসওয়ার্ড দিন:</p>
+                    <input type="password" id="resetPass1" class="w-full p-3 bg-slate-800 border border-slate-700 text-center text-sm rounded-xl outline-none tracking-widest font-mono" placeholder="এডমিন পাসওয়ার্ড">
+                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="btnNextReset" class="flex-1 py-3 text-sm bg-rose-600 text-white rounded-xl font-bold">পরবর্তী ধাপ</button></div>
+                `, () => {
+                    if(document.getElementById('resetPass1').value === CONFIG.ADMIN_PASS) {
+                        hideModal();
+                        setTimeout(() => {
+                            showModal(`
+                                <h3 class="font-bold text-rose-500 text-lg mb-4 border-b border-slate-700 pb-3 text-center">চূড়ান্ত কনফার্মেশন (ধাপ ২/২)</h3>
+                                <p class="text-xs text-rose-400 mb-4 text-center">এটি আর পরিবর্তন করা যাবে না! আবার পাসওয়ার্ড দিন:</p>
+                                <input type="password" id="resetPass2" class="w-full p-3 bg-slate-800 border border-rose-500/50 text-center text-sm rounded-xl outline-none tracking-widest font-mono focus:border-rose-500" placeholder="কনফার্ম পাসওয়ার্ড">
+                                <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="btnFinalReset" class="flex-1 py-3 text-sm bg-rose-600 text-white rounded-xl font-bold shadow-lg shadow-rose-500/30">সব মুছে ফেলুন</button></div>
+                            `, async () => {
+                                if(document.getElementById('resetPass2').value === CONFIG.ADMIN_PASS) {
+                                    // RESET LOGIC
+                                    if(supabase) {
+                                        await supabase.from('expenses').delete().neq('id', '0'); // delete all
+                                        for(let m of data.members) { await supabase.from('members').update({paid:0, borrowed:0, absentDays:0}).eq('id', m.id); }
+                                    }
+                                    data.expenses = [];
+                                    data.members.forEach(m => { m.paid=0; m.borrowed=0; m.absentDays=0; });
+                                    hideModal(); render(); showToast('সব হিসাব রিসেট করা হয়েছে!', 'success');
+                                    await logActivity('সিস্টেম রিসেট', 'এডমিন দ্বারা নতুন মাসের জন্য সমস্ত হিসাব জিরো (0) করা হয়েছে।');
+                                } else showToast('ভুল পাসওয়ার্ড!', 'error');
+                            });
+                            document.getElementById('btnFinalReset')?.addEventListener('click', window._modalSaveCallback);
+                        }, 200);
+                    } else showToast('ভুল পাসওয়ার্ড!', 'error');
                 });
-                document.getElementById('saveNewMember')?.addEventListener('click', window._modalSaveCallback);
+                document.getElementById('btnNextReset')?.addEventListener('click', window._modalSaveCallback);
             });
+        };
+
+        // Render History with Single Log Delete Function
+        const openHistoryModal = () => {
+            const logsHtml = data.logs.length ? data.logs.map(l => `
+                <div class="p-3 bg-slate-800 rounded-xl mb-2 flex justify-between items-start">
+                    <div class="text-left flex-1 pr-2">
+                        <div class="flex justify-between items-start mb-1"><span class="font-bold text-xs text-indigo-400">${l.action}</span><span class="text-[10px] text-slate-500">ID: #${l.log_id || l.id.substring(l.id.length-5)}</span></div>
+                        <p class="text-xs text-slate-300">${l.details}</p>
+                        <p class="text-[9px] text-slate-500 mt-1">${l.timestamp}</p>
+                    </div>
+                    ${isAdmin ? `<button class="delete-log-btn text-rose-500 p-2 hover:bg-rose-500/20 rounded-lg flex-shrink-0" data-id="${l.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
+                </div>
+            `).join('') : '<p class="text-center text-slate-500 text-xs py-4">কোনো হিস্ট্রি নেই</p>';
+            
+            showModal(`
+                <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-3 text-center">সিস্টেম হিস্ট্রি (Audit Log)</h3>
+                <div class="max-h-80 overflow-y-auto hide-scrollbar" id="historyContainer">${logsHtml}</div>
+                <button id="closeModal" class="w-full mt-4 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বন্ধ করুন</button>
+            `);
+
+            // Attach log delete listeners
+            if(isAdmin) {
+                document.querySelectorAll('.delete-log-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                    const idToDel = e.currentTarget.dataset.id;
+                    hideModal();
+                    setTimeout(() => {
+                        showModal(`
+                            <h3 class="font-bold text-rose-500 mb-3 text-center">হিস্ট্রি মুছুন</h3>
+                            <input type="password" id="delLogPass" class="w-full p-3 bg-slate-800 border border-slate-700 text-center text-sm rounded-xl outline-none" placeholder="এডমিন পাসওয়ার্ড">
+                            <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="confirmDelLog" class="flex-1 py-3 text-sm bg-rose-600 text-white rounded-xl font-bold">মুছুন</button></div>
+                        `, async () => {
+                            if(document.getElementById('delLogPass').value === CONFIG.ADMIN_PASS) {
+                                if(supabase) await supabase.from('activity_logs').delete().eq('id', idToDel);
+                                data.logs = data.logs.filter(x => x.id !== idToDel);
+                                hideModal(); showToast('হিস্ট্রি ডিলিট হয়েছে!', 'error');
+                                setTimeout(openHistoryModal, 300); // reopen history
+                            } else showToast('ভুল পাসওয়ার্ড!', 'error');
+                        });
+                        document.getElementById('confirmDelLog')?.addEventListener('click', window._modalSaveCallback);
+                    }, 200);
+                }));
+            }
         };
 
         const showModal = (content, onSave) => {
@@ -569,43 +569,21 @@
         };
         const hideModal = () => document.getElementById('modalContainer').classList.add('hidden');
 
-        document.getElementById('themeToggle').addEventListener('click', () => {
-            isDark = !isDark; document.documentElement.classList.toggle('dark', isDark);
-        });
+        document.getElementById('themeToggle').addEventListener('click', () => { isDark = !isDark; document.documentElement.classList.toggle('dark', isDark); });
 
         document.getElementById('adminBtn').addEventListener('click', () => {
-            if(isAdmin) { 
-                isAdmin = false; localStorage.removeItem('mess_admin_token');
-                document.getElementById('adminBtnText').innerText = 'এডমিন'; render(); showToast('লগআউট সফল!'); return; 
-            }
+            if(isAdmin) { isAdmin = false; localStorage.removeItem('mess_admin_token'); document.getElementById('adminBtnText').innerText = 'এডমিন'; render(); showToast('লগআউট সফল!'); return; }
             showModal(`
                 <div class="text-center mb-5"><div class="w-14 h-14 bg-indigo-500/10 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3"><i data-lucide="shield-check" class="w-7 h-7"></i></div><h3 class="font-bold text-xl">এডমিন লগইন</h3></div>
                 <input type="password" id="adminPassInput" class="w-full p-3 rounded-xl bg-slate-800 border border-slate-700 text-sm text-center tracking-widest font-mono outline-none" placeholder="পাসওয়ার্ড দিন">
                 <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="checkPass" class="flex-1 py-3 text-sm bg-indigo-600 text-white rounded-xl font-bold">লগইন</button></div>
-                <button id="viewHistoryBtn" class="w-full mt-4 py-2 text-xs text-indigo-400 font-bold border border-indigo-500/30 rounded-xl">পাবলিক অ্যাক্টিভিটি হিস্ট্রি দেখুন</button>
+                <button id="viewHistoryBtn" class="w-full mt-4 py-3 text-xs text-indigo-400 hover:text-white font-bold border border-indigo-500/30 hover:bg-indigo-600 transition-colors rounded-xl flex items-center justify-center gap-2"><i data-lucide="history" class="w-4 h-4"></i> পাবলিক হিস্ট্রি দেখুন</button>
             `, () => {
                 const inputPass = document.getElementById('adminPassInput').value;
-                if(inputPass === CONFIG.ADMIN_PASS) {
-                    isAdmin = true; localStorage.setItem('mess_admin_token', inputPass);
-                    document.getElementById('adminBtnText').innerText = 'লগআউট'; hideModal(); render(); showToast('লগইন সফল!');
-                } else showToast('ভুল পাসওয়ার্ড!', 'error');
+                if(inputPass === CONFIG.ADMIN_PASS) { isAdmin = true; localStorage.setItem('mess_admin_token', inputPass); document.getElementById('adminBtnText').innerText = 'লগআউট'; hideModal(); render(); showToast('লগইন সফল!'); } 
+                else showToast('ভুল পাসওয়ার্ড!', 'error');
             });
-            
-            document.getElementById('viewHistoryBtn')?.addEventListener('click', () => {
-                const logsHtml = data.logs.length ? data.logs.map(l => `
-                    <div class="p-3 bg-slate-800 rounded-xl mb-2 text-left">
-                        <div class="flex justify-between items-start mb-1"><span class="font-bold text-xs text-indigo-400">${l.action}</span><span class="text-[10px] text-slate-500">ID: #${l.log_id}</span></div>
-                        <p class="text-xs text-slate-300">${l.details}</p>
-                        <p class="text-[9px] text-slate-500 mt-1">${l.timestamp}</p>
-                    </div>
-                `).join('') : '<p class="text-center text-slate-500 text-xs">কোনো হিস্ট্রি নেই</p>';
-                
-                showModal(`
-                    <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-3 text-center">সিস্টেম হিস্ট্রি (Audit Log)</h3>
-                    <div class="max-h-60 overflow-y-auto hide-scrollbar">${logsHtml}</div>
-                    <button id="closeModal" class="w-full mt-4 py-3 text-sm bg-slate-800 rounded-xl font-bold">বন্ধ করুন</button>
-                `);
-            });
+            document.getElementById('viewHistoryBtn')?.addEventListener('click', () => { hideModal(); setTimeout(openHistoryModal, 200); });
         });
 
         document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -613,11 +591,7 @@
                 activeTab = e.currentTarget.dataset.tab;
                 document.querySelectorAll('.nav-btn').forEach(b => { b.classList.replace('text-indigo-400', 'text-slate-500'); });
                 e.currentTarget.classList.replace('text-slate-500', 'text-indigo-400');
-                
-                document.getElementById('app-content').classList.remove('fade-in');
-                void document.getElementById('app-content').offsetWidth;
-                document.getElementById('app-content').classList.add('fade-in');
-                
+                document.getElementById('app-content').classList.remove('fade-in'); void document.getElementById('app-content').offsetWidth; document.getElementById('app-content').classList.add('fade-in');
                 render();
             });
         });
