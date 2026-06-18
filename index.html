@@ -32,7 +32,7 @@
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex justify-center items-center shadow-lg">
                     <i data-lucide="home" class="text-white w-6 h-6"></i>
                 </div>
-                <h1 class="text-xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">মেস খালু</h1>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">মেস ম্যানেজার</h1>
             </div>
             <div class="flex items-center gap-3">
                 <button id="themeToggle" class="p-2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-yellow-400">
@@ -76,40 +76,35 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // গ্লোবাল এরর হ্যান্ডলার (সাদা স্ক্রিন রোধ করার জন্য)
-        window.addEventListener('error', (e) => {
-            const appContent = document.getElementById('app-content');
-            if(appContent && appContent.innerHTML === '') {
-                appContent.innerHTML = `<div class="p-6 mt-10 bg-red-100 border border-red-300 text-red-600 font-bold rounded-2xl text-center shadow-lg"><i data-lucide="alert-triangle" class="w-10 h-10 mx-auto mb-3 text-red-500"></i>সিস্টেম এরর: <br><span class="text-xs font-normal mt-2 block">${e.message}</span></div>`;
-                if(window.lucide) lucide.createIcons();
-            }
-        });
-
-        const getEnv = (key, fallback = '') => {
-            try { return import.meta.env[key] || fallback; } catch (e) { return fallback; }
-        };
-
-        let fbConfigRaw = getEnv('VITE_FIREBASE_CONFIG');
+        // Vercel ENV ঠিকমতো লোড করার জন্য ডাইরেক্ট ইম্পোর্ট সিস্টেম
         let parsedFirebase = null;
-        
-        if (fbConfigRaw) {
-            try {
-                parsedFirebase = JSON.parse(fbConfigRaw);
-            } catch (e) {
-                try {
-                    // ডাবল কোটেশন না থাকলেও এই ফাংশনটি অটোমেটিক ফিক্স করে নিবে
-                    parsedFirebase = new Function("return " + fbConfigRaw)();
-                } catch (e2) {
-                    console.error("Firebase Config Parse Error:", e2);
+        let envTgToken = '';
+        let envTgChatId = '';
+        let envAdminPass = 'admin123';
+
+        try {
+            const rawFb = import.meta.env.VITE_FIREBASE_CONFIG;
+            if (rawFb) {
+                if (typeof rawFb === 'object') {
+                    parsedFirebase = rawFb;
+                } else if (typeof rawFb === 'string') {
+                    try { parsedFirebase = JSON.parse(rawFb); }
+                    catch(e) { try { parsedFirebase = new Function("return " + rawFb)(); } catch(err){} }
                 }
             }
+            
+            if (import.meta.env.VITE_TG_TOKEN) envTgToken = import.meta.env.VITE_TG_TOKEN;
+            if (import.meta.env.VITE_TG_CHAT_ID) envTgChatId = import.meta.env.VITE_TG_CHAT_ID;
+            if (import.meta.env.VITE_ADMIN_PASS) envAdminPass = import.meta.env.VITE_ADMIN_PASS;
+        } catch (e) {
+            console.log("Vite ENV ভ্যারিয়েবল লোড হচ্ছে না।");
         }
 
         const CONFIG = {
             FIREBASE: parsedFirebase,
-            TG_TOKEN: getEnv('VITE_TG_TOKEN'),
-            TG_CHAT_ID: getEnv('VITE_TG_CHAT_ID'),
-            ADMIN_PASS: getEnv('VITE_ADMIN_PASS', 'admin123'),
+            TG_TOKEN: envTgToken,
+            TG_CHAT_ID: envTgChatId,
+            ADMIN_PASS: envAdminPass,
             MONTHLY_FEE: 5000,
             REBATE_PER_DAY: 50,
             MIN_ABSENT_DAYS_FOR_REBATE: 3,
@@ -627,9 +622,15 @@
             const mc = document.getElementById('modalContainer');
             mc.innerHTML = `<div class="bg-white dark:bg-darkCard w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-darkBorder fade-in">${content}</div>`;
             mc.classList.remove('hidden');
+            
             document.getElementById('closeModal')?.addEventListener('click', hideModal);
-            if(onSave) document.getElementById('saveRoutine')?.addEventListener('click', onSave);
-            if(onSave) document.getElementById('saveMember')?.addEventListener('click', onSave);
+            
+            // এই নিচের লাইনে ইভেন্ট লিসেনারটি মিসিং ছিল
+            if(onSave) {
+                document.getElementById('saveRoutine')?.addEventListener('click', onSave);
+                document.getElementById('saveMember')?.addEventListener('click', onSave);
+                document.getElementById('checkPass')?.addEventListener('click', onSave); 
+            }
         };
         const hideModal = () => document.getElementById('modalContainer').classList.add('hidden');
 
