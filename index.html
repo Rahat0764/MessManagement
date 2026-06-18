@@ -391,7 +391,7 @@
                 </div>
             `).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো খরচের রেকর্ড নেই</div>';
 
-            const depositLogs = data.logs.filter(l => l.action.includes('জমা') || l.action.includes('মাইনাস') || l.action.includes('হিসাব') || l.action.includes('সদস্য'));
+            const depositLogs = data.logs.filter(l => l.action.includes('জমা') || l.action.includes('মাইনাস') || l.action.includes('হিসাব') || l.action.includes('সদস্য') || l.action.includes('রিসেট'));
             let depositHtml = depositLogs.map(l => `
                 <div class="log-item p-4 border-b border-slate-100 dark:border-darkBorder/50 relative hover:bg-slate-800/30 transition-colors" data-search="${l.action.toLowerCase()} ${l.details.toLowerCase()} ${l.log_id?.toLowerCase() || ''}">
                     <div class="flex justify-between items-start pr-6">
@@ -559,9 +559,11 @@
                                     if(document.getElementById('resetPass2').value === CONFIG.ADMIN_PASS) {
                                         if(supabase) {
                                             await supabase.from('expenses').delete().neq('id', '0'); 
+                                            await supabase.from('activity_logs').delete().neq('id', '0'); 
                                             for(let m of data.members) { await supabase.from('members').update({paid:0, borrowed:0, absentDays:0}).eq('id', m.id); }
                                         }
                                         data.expenses = [];
+                                        data.logs = [];
                                         data.members.forEach(m => { m.paid=0; m.borrowed=0; m.absentDays=0; });
                                         hideModal(); render(); showToast('সব হিসাব রিসেট করা হয়েছে!', 'success');
                                         await logActivity('সিস্টেম রিসেট', 'এডমিন দ্বারা নতুন মাসের জন্য সমস্ত হিসাব জিরো (0) করা হয়েছে।');
