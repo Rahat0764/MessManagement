@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="bn" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>মেস ম্যানেজমেন্ট সিস্টেম</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: { colors: { darkBg: '#0f172a', darkCard: '#1e293b', darkBorder: '#334155' } }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .glass-nav { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-darkBg text-slate-800 dark:text-slate-100 transition-colors duration-300 pb-24">
+
+    <header class="sticky top-0 z-40 glass-nav bg-white/80 dark:bg-darkBg/80 border-b border-slate-200 dark:border-darkBorder px-4 py-3">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex justify-center items-center shadow-lg">
+                    <i data-lucide="home" class="text-white w-6 h-6"></i>
+                </div>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">মেস ম্যানেজার</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="themeToggle" class="p-2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-yellow-400">
+                    <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                    <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+                </button>
+                <button id="adminBtn" class="flex items-center gap-1 text-sm font-semibold text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-lg transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/50">
+                    <i data-lucide="key" class="w-4 h-4"></i> <span id="adminBtnText">এডমিন</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main id="app-content" class="max-w-5xl mx-auto p-4 mt-2 fade-in"></main>
+
+    <nav class="fixed bottom-0 w-full glass-nav bg-white/90 dark:bg-darkBg/90 border-t border-slate-200 dark:border-darkBorder z-40">
+        <div class="max-w-5xl mx-auto flex justify-around items-center h-16 px-2">
+            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-blue-500" data-tab="routine">
+                <i data-lucide="calendar-days" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">রুটিন</span>
+            </button>
+            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500" data-tab="finance">
+                <i data-lucide="users" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">সদস্য</span>
+            </button>
+            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500" data-tab="expense">
+                <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">খরচ</span>
+            </button>
+            <button class="nav-btn flex flex-col items-center gap-1 w-16 text-slate-400 dark:text-slate-500" data-tab="overview">
+                <i data-lucide="pie-chart" class="w-6 h-6"></i>
+                <span class="text-[10px] font-bold">হিসাব</span>
+            </button>
+        </div>
+    </nav>
+
+    <div id="modalContainer" class="fixed inset-0 bg-black/60 z-50 hidden flex justify-center items-center px-4 backdrop-blur-sm"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const getEnv = (key, fallback = '') => {
+            try { return import.meta.env[key] || fallback; } catch (e) { return fallback; }
+        };
+
+        let fbConfigRaw = getEnv('VITE_FIREBASE_CONFIG');
+        if(!fbConfigRaw && typeof __firebase_config !== 'undefined') fbConfigRaw = JSON.stringify(__firebase_config);
+
+        const CONFIG = {
+            FIREBASE: fbConfigRaw ? JSON.parse(fbConfigRaw) : null,
+            TG_TOKEN: getEnv('VITE_TG_TOKEN'),
+            TG_CHAT_ID: getEnv('VITE_TG_CHAT_ID'),
+            ADMIN_PASS: getEnv('VITE_ADMIN_PASS', 'admin123'),
+            MONTHLY_FEE: 5000,
+            REBATE_PER_DAY: 50,
+            MIN_ABSENT_DAYS_FOR_REBATE: 3,
+            MEMBERS: ['রাহাত', 'ওসমান', 'জিসান', 'মিরাজ', 'নাবিল', 'তামিম', 'সোয়াইব', 'ইমন'],
+            ROUTINE: [
+                { id: '1', day: 'শনিবার', b: 'আলু ভর্তা', l: 'ডিম', d: 'সবজি' },
+                { id: '2', day: 'রবিবার', b: 'শাক ভাজি', l: 'মাছ', d: 'লাউ চিংড়ি' },
+                { id: '3', day: 'সোমবার', b: 'ভর্তা', l: 'মুরগি', d: 'মুড়িঘণ্ট' },
+                { id: '4', day: 'মঙ্গলবার', b: 'মুরগি খিচুড়ি', l: 'ডিম', d: 'ভাজি' },
+                { id: '5', day: 'বুধবার', b: 'ডিম ভাজা', l: 'মাছ', d: 'ডিম' },
+                { id: '6', day: 'বৃহস্পতিবার', b: 'আলু ভাজি', l: 'মুরগি', d: 'বিরিয়ানি / খিচুড়ি' },
+                { id: '7', day: 'শুক্রবার', b: 'সবজি খিচুড়ি', l: 'গরু', d: 'সবজি' }
+            ]
+        };
+
+        const APP_ID = 'mess-manager-v2';
+        const days = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+        let activeTab = 'routine';
+        let isAdmin = localStorage.getItem('mess_admin_token') === CONFIG.ADMIN_PASS;
+        let isDark = true;
+        let db, auth;
+        let data = { routine: [], members: [], expenses: [] };
+        let bazaarItems = [{name: '', amount: ''}];
+
+        const initApp = async () => {
+            if (!CONFIG.FIREBASE) {
+                document.getElementById('app-content').innerHTML = `<div class="text-center mt-20 p-6 bg-red-100 text-red-500 font-bold rounded-xl border border-red-200">Firebase Config (VITE_FIREBASE_CONFIG) সেট করা নেই!</div>`;
+                return;
+            }
+
+            const app = initializeApp(CONFIG.FIREBASE);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            await signInAnonymously(auth);
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    if (isAdmin) document.getElementById('adminBtnText').innerText = 'লগআউট';
+                    setupListeners();
+                    checkUrlForApproval();
+                }
+            });
+        };
+
+        const setupListeners = () => {
+            onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'routine'), (snap) => {
+                if (snap.empty) {
+                    data.routine = CONFIG.ROUTINE;
+                    CONFIG.ROUTINE.forEach(r => setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'routine', r.id), r));
+                } else {
+                    data.routine = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                }
+                if (activeTab === 'routine') render();
+            });
+
+            onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'members'), (snap) => {
+                if (snap.empty) {
+                    data.members = CONFIG.MEMBERS.map(name => ({ name, paid: 0, borrowed: 0, absentDays: 0 }));
+                    data.members.forEach(m => addDoc(collection(db, 'artifacts', APP_ID, 'public', 'data', 'members'), m));
+                } else {
+                    data.members = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                }
+                if (activeTab === 'finance' || activeTab === 'overview' || activeTab === 'expense') render();
+            });
+
+            onSnapshot(collection(db, 'artifacts', APP_ID, 'public', 'data', 'expenses'), (snap) => {
+                data.expenses = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                if (activeTab === 'expense' || activeTab === 'overview') render();
+            });
+        };
+
+        const checkUrlForApproval = async () => {
+            const params = new URLSearchParams(window.location.search);
+            const approveId = params.get('approve');
+            const token = params.get('token');
+
+            if (approveId && token === CONFIG.ADMIN_PASS) {
+                try {
+                    await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'expenses', approveId), { status: 'approved' });
+                    alert('সফলভাবে অ্যাপ্রুভ হয়েছে!');
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch(e) {}
+            }
+        };
+
+        const sendTelegramMsg = async (msg, expenseId) => {
+            if (!CONFIG.TG_TOKEN || !CONFIG.TG_CHAT_ID) return;
+            const chatIds = CONFIG.TG_CHAT_ID.split(',');
+            const url = `https://api.telegram.org/bot${CONFIG.TG_TOKEN}/sendMessage`;
+            
+            for(let id of chatIds) {
+                let payload = { chat_id: id.trim(), text: msg, parse_mode: 'HTML' };
+                if (expenseId) {
+                    const baseUrl = window.location.href.split('?')[0];
+                    const approveUrl = `${baseUrl}?approve=${expenseId}&token=${CONFIG.ADMIN_PASS}`;
+                    payload.reply_markup = { inline_keyboard: [[{ text: '✅ কনফার্ম করুন', url: approveUrl }]] };
+                }
+                fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) }).catch(()=>{});
+            }
+        };
+
+        const render = () => {
+            const content = document.getElementById('app-content');
+            content.innerHTML = '';
+            
+            if (activeTab === 'routine') content.innerHTML = buildRoutineHTML();
+            else if (activeTab === 'finance') content.innerHTML = buildFinanceHTML();
+            else if (activeTab === 'expense') content.innerHTML = buildExpenseHTML();
+            else if (activeTab === 'overview') content.innerHTML = buildOverviewHTML();
+            
+            lucide.createIcons();
+            attachDynamicListeners();
+        };
+
+        const buildRoutineHTML = () => {
+            const today = days[new Date().getDay()];
+            const routineData = data.routine.length > 0 ? data.routine : CONFIG.ROUTINE;
+            const todayRoutine = routineData.find(r => r.day === today);
+            let html = '';
+
+            if(todayRoutine) {
+                html += `
+                <div class="bg-white dark:bg-darkCard rounded-2xl p-6 mb-6 shadow-sm border border-slate-200 dark:border-darkBorder relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 text-blue-500/10"><i data-lucide="sun" class="w-32 h-32"></i></div>
+                    <div class="flex items-center gap-3 mb-5">
+                        <span class="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-md shadow-blue-500/30">আজকে</span>
+                        <h2 class="text-2xl font-bold">${todayRoutine.day}</h2>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-orange-50 dark:bg-orange-500/10 p-4 rounded-xl border border-orange-100 dark:border-orange-500/20 flex flex-col justify-center">
+                            <div class="flex items-center gap-2 text-orange-500 font-bold mb-1"><i data-lucide="sunrise" class="w-4 h-4"></i> সকাল</div>
+                            <span class="font-bold text-lg">${todayRoutine.b}</span>
+                        </div>
+                        <div class="bg-green-50 dark:bg-green-500/10 p-4 rounded-xl border border-green-100 dark:border-green-500/20 flex flex-col justify-center">
+                            <div class="flex items-center gap-2 text-green-500 font-bold mb-1"><i data-lucide="sun" class="w-4 h-4"></i> দুপুর</div>
+                            <span class="font-bold text-lg">${todayRoutine.l}</span>
+                        </div>
+                        <div class="bg-purple-50 dark:bg-purple-500/10 p-4 rounded-xl border border-purple-100 dark:border-purple-500/20 flex flex-col justify-center">
+                            <div class="flex items-center gap-2 text-purple-500 font-bold mb-1"><i data-lucide="moon" class="w-4 h-4"></i> রাত</div>
+                            <span class="font-bold text-lg">${todayRoutine.d}</span>
+                        </div>
+                    </div>
+                </div>`;
+            }
+
+            html += `<div class="bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-slate-200 dark:border-darkBorder overflow-hidden">
+                <div class="p-5 border-b border-slate-200 dark:border-darkBorder bg-slate-50 dark:bg-slate-800/50"><h3 class="font-bold text-xl">সাপ্তাহিক রুটিন</h3></div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-darkBorder text-sm">
+                                <th class="p-4 font-semibold">বার</th>
+                                <th class="p-4 font-semibold">সকাল</th>
+                                <th class="p-4 font-semibold">দুপুর</th>
+                                <th class="p-4 font-semibold">রাত</th>
+                                ${isAdmin ? '<th class="p-4 text-right">এডিট</th>' : ''}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${routineData.sort((a,b)=>a.id-b.id).map(r => `
+                                <tr class="border-b border-slate-100 dark:border-darkBorder/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <td class="p-4 font-bold text-blue-500">${r.day}</td>
+                                    <td class="p-4">${r.b}</td><td class="p-4">${r.l}</td><td class="p-4">${r.d}</td>
+                                    ${isAdmin && r.id ? `<td class="p-4 text-right"><button class="text-slate-400 hover:text-blue-500 edit-routine-btn p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors" data-id="${r.id}"><i data-lucide="edit-2" class="w-4 h-4"></i></button></td>` : (isAdmin ? '<td></td>' : '')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+            return html;
+        };
+
+        const buildFinanceHTML = () => {
+            const memberData = data.members.length > 0 ? data.members : CONFIG.MEMBERS.map(name => ({ name, paid: 0, borrowed: 0, absentDays: 0 }));
+            return `
+            <div class="bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-slate-200 dark:border-darkBorder overflow-hidden">
+                <div class="p-5 border-b border-slate-200 dark:border-darkBorder flex flex-wrap justify-between items-center gap-3 bg-slate-50 dark:bg-slate-800/50">
+                    <h3 class="font-bold text-xl">সদস্যদের হিসাব</h3>
+                    <div class="flex gap-2 text-xs">
+                        <span class="font-bold bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 px-3 py-1.5 rounded-lg">মাসিক ফি: ৳${CONFIG.MONTHLY_FEE}</span>
+                        <span class="font-bold bg-purple-100 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 px-3 py-1.5 rounded-lg">রিবেট: ৳${CONFIG.REBATE_PER_DAY}/দিন (>৩ দিন)</span>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left whitespace-nowrap">
+                        <thead>
+                            <tr class="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-darkBorder text-sm">
+                                <th class="p-4 font-semibold">নাম</th>
+                                <th class="p-4 font-semibold text-green-500">জমা</th>
+                                <th class="p-4 font-semibold text-red-500">ধার</th>
+                                <th class="p-4 font-semibold text-purple-500">বন্ধ দিন</th>
+                                <th class="p-4 font-semibold text-indigo-500">রিবেট</th>
+                                <th class="p-4 font-semibold">বাকি/পাওনা</th>
+                                ${isAdmin ? '<th class="p-4 text-right">এডিট</th>' : ''}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${memberData.map(m => {
+                                let absent = m.absentDays || 0;
+                                let rebate = absent > CONFIG.MIN_ABSENT_DAYS_FOR_REBATE ? absent * CONFIG.REBATE_PER_DAY : 0;
+                                let payable = CONFIG.MONTHLY_FEE - rebate;
+                                let due = payable - (m.paid || 0) + (m.borrowed || 0);
+                                
+                                let dueText = due > 0 ? `৳${due} <span class="text-[10px] bg-orange-100 text-orange-600 dark:bg-orange-500/20 px-1 rounded ml-1">বাকি</span>` : 
+                                              (due < 0 ? `৳${Math.abs(due)} <span class="text-[10px] bg-green-100 text-green-600 dark:bg-green-500/20 px-1 rounded ml-1">পাওনা</span>` : '৳0');
+                                let dueColor = due > 0 ? 'text-orange-500' : (due < 0 ? 'text-green-500' : 'text-slate-500 dark:text-slate-400');
+
+                                return `
+                                <tr class="border-b border-slate-100 dark:border-darkBorder/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <td class="p-4 font-bold flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center text-sm shadow-inner">${m.name.charAt(0)}</div>
+                                        ${m.name}
+                                    </td>
+                                    <td class="p-4 font-medium">৳${m.paid || 0}</td>
+                                    <td class="p-4 font-medium text-red-400">৳${m.borrowed || 0}</td>
+                                    <td class="p-4 font-medium text-purple-500">${absent} দিন</td>
+                                    <td class="p-4 font-medium text-indigo-500">৳${rebate}</td>
+                                    <td class="p-4 font-bold ${dueColor}">${dueText}</td>
+                                    ${isAdmin && m.id ? `<td class="p-4 text-right"><button class="text-slate-400 hover:text-blue-500 edit-member-btn p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors" data-id="${m.id}"><i data-lucide="edit-2" class="w-4 h-4"></i></button></td>` : (isAdmin ? '<td></td>' : '')}
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        };
+
+        const buildExpenseHTML = () => {
+            let itemsHtml = bazaarItems.map((item, idx) => `
+                <div class="flex gap-2 mb-2 items-center">
+                    <input type="text" placeholder="আইটেম (যেমন: আলু)" class="bazaar-name flex-1 p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" value="${item.name}" data-idx="${idx}">
+                    <input type="number" placeholder="৳" class="bazaar-amount w-24 p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm text-center focus:ring-2 focus:ring-blue-500 focus:outline-none" value="${item.amount}" data-idx="${idx}">
+                    <button class="remove-bazaar-btn bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors text-red-500 p-3 rounded-xl flex-shrink-0" data-idx="${idx}"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                </div>
+            `).join('');
+
+            let membersOptions = CONFIG.MEMBERS.map(m => `<option value="${m}">${m}</option>`).join('');
+
+            let expenseList = data.expenses.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).map(e => `
+                <div class="p-5 border-b border-slate-100 dark:border-darkBorder/50 relative hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                    ${e.status === 'pending' ? '<span class="absolute top-5 right-5 text-[10px] bg-orange-100 text-orange-600 px-2 py-1 rounded-md font-bold shadow-sm">পেন্ডিং</span>' : '<span class="absolute top-5 right-5 text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-md font-bold shadow-sm">অ্যাপ্রুভড</span>'}
+                    <div class="flex items-center gap-2 mb-1">
+                        <div class="p-2 rounded-lg ${e.type === 'বাজার' ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-500' : 'bg-green-50 dark:bg-green-500/10 text-green-500'}">
+                            <i data-lucide="${e.type === 'বাজার' ? 'shopping-bag' : 'zap'}" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold">${e.type}</h4>
+                            <p class="text-[11px] text-slate-400">${new Date(e.date).toLocaleDateString('bn-BD')} ${e.shopper ? `• বাজার করেছে: <span class="font-semibold text-slate-500 dark:text-slate-300">${e.shopper}</span>` : ''}</p>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-slate-800 dark:text-white my-3">৳${e.total}</div>
+                    ${e.type === 'বাজার' && e.items && e.items.length > 0 ? `
+                        <div class="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl text-xs space-y-2 mt-2 border border-slate-100 dark:border-darkBorder/50">
+                            ${e.items.map(i=>`<div class="flex justify-between items-center"><span class="text-slate-600 dark:text-slate-300">${i.name}</span><span class="font-bold">৳${i.amount}</span></div>`).join('')}
+                        </div>
+                    ` : ''}
+                    <div class="flex gap-2 mt-4">
+                        ${isAdmin && e.status === 'pending' ? `<button class="text-xs bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-md font-bold transition-colors approve-exp-btn" data-id="${e.id}">অ্যাপ্রুভ</button>` : ''}
+                        ${isAdmin ? `<button class="text-xs bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 text-red-500 px-4 py-2 rounded-lg font-bold transition-colors del-exp-btn" data-id="${e.id}">মুছুন</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            if(!expenseList) expenseList = '<div class="p-10 text-center text-slate-400 flex flex-col items-center gap-3"><i data-lucide="inbox" class="w-10 h-10 opacity-50"></i><span>কোনো খরচের রেকর্ড নেই</span></div>';
+
+            return `
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div class="lg:col-span-2 bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-slate-200 dark:border-darkBorder p-6 h-fit">
+                    <h3 class="font-bold text-xl mb-5 flex items-center gap-2"><div class="p-2 bg-blue-500/10 rounded-lg text-blue-500"><i data-lucide="plus-circle" class="w-5 h-5"></i></div> নতুন খরচ</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">খরচের ধরণ</label>
+                            <select id="expType" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="বাজার">বাজার</option>
+                                <option value="বাসা ভাড়া">বাসা ভাড়া</option>
+                                <option value="কারেন্ট বিল">কারেন্ট বিল</option>
+                                <option value="ওয়াইফাই বিল">ওয়াইফাই বিল</option>
+                                <option value="অন্যান্য">অন্যান্য</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">তারিখ</label>
+                            <input type="date" id="expDate" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="${new Date().toISOString().split('T')[0]}">
+                        </div>
+                        <div id="bazaarSection" class="space-y-4 pt-2 border-t border-slate-100 dark:border-darkBorder/50">
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 mb-1 block">কে বাজার করেছে?</label>
+                                <select id="expShopper" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">-- নাম নির্বাচন করুন --</option>
+                                    ${membersOptions}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-slate-500 mb-2 block flex justify-between"><span>বাজারের লিস্ট</span> <span class="text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded text-[10px]">মোট আইটেম: ${bazaarItems.length}</span></label>
+                                <div id="bazaarItemsContainer">${itemsHtml}</div>
+                                <button id="addBazaarItemBtn" class="w-full mt-2 py-3 border-2 border-dashed border-slate-200 dark:border-darkBorder rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex justify-center items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> আরও আইটেম</button>
+                            </div>
+                        </div>
+                        <div id="otherSection" class="hidden pt-2 border-t border-slate-100 dark:border-darkBorder/50">
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">মোট এমাউন্ট</label>
+                            <input type="number" id="expTotal" placeholder="কত টাকা?" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <button id="submitExpBtn" class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-95 text-sm mt-4">সেভ করুন</button>
+                        ${!isAdmin ? '<p class="text-[11px] text-center mt-2 text-slate-400"><i data-lucide="info" class="w-3 h-3 inline pb-0.5"></i> সাবমিট করলে এডমিনের কাছে অ্যাপ্রুভালের জন্য যাবে</p>' : ''}
+                    </div>
+                </div>
+                <div class="lg:col-span-3 bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-slate-200 dark:border-darkBorder overflow-hidden flex flex-col h-full max-h-[800px]">
+                    <div class="p-5 border-b border-slate-200 dark:border-darkBorder bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
+                        <h3 class="font-bold text-xl">খরচের তালিকা</h3>
+                        <span class="text-xs font-bold bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">${data.expenses.length} এন্ট্রি</span>
+                    </div>
+                    <div class="overflow-y-auto hide-scrollbar p-2">${expenseList}</div>
+                </div>
+            </div>`;
+        };
+
+        const buildOverviewHTML = () => {
+            const memberData = data.members.length > 0 ? data.members : [];
+            const totalFund = memberData.reduce((sum, m) => sum + Number(m.paid || 0), 0);
+            const totalSpent = data.expenses.filter(e => e.status === 'approved').reduce((sum, e) => sum + Number(e.total || 0), 0);
+            const remaining = totalFund - totalSpent;
+
+            const cats = ['বাজার', 'বাসা ভাড়া', 'কারেন্ট বিল', 'ওয়াইফাই বিল', 'অন্যান্য'];
+            const catHtml = cats.map(c => {
+                const amt = data.expenses.filter(e => e.status === 'approved' && e.type === c).reduce((sum, e) => sum + Number(e.total), 0);
+                if(amt === 0) return '';
+                return `
+                <div class="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-100 dark:border-darkBorder/50 rounded-xl mb-3 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-white dark:bg-darkCard shadow-sm">
+                            <i data-lucide="${c === 'বাজার' ? 'shopping-bag' : c === 'বাসা ভাড়া' ? 'home' : c === 'কারেন্ট বিল' ? 'zap' : c === 'ওয়াইফাই বিল' ? 'wifi' : 'more-horizontal'}" class="w-5 h-5 text-slate-500"></i>
+                        </div>
+                        <span class="font-bold text-sm text-slate-700 dark:text-slate-200">${c}</span>
+                    </div>
+                    <span class="font-bold text-lg text-slate-800 dark:text-white">৳${amt}</span>
+                </div>`;
+            }).join('');
+
+            return `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+                <div class="bg-gradient-to-br from-blue-500 to-indigo-600 p-6 rounded-2xl shadow-xl shadow-blue-500/20 text-white relative overflow-hidden">
+                    <i data-lucide="wallet" class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 transform rotate-12"></i>
+                    <p class="text-blue-100 text-xs font-bold mb-2 uppercase tracking-wider">মোট ফান্ড কালেকশন</p>
+                    <h3 class="text-4xl font-bold">৳${totalFund}</h3>
+                </div>
+                <div class="bg-gradient-to-br from-orange-500 to-red-500 p-6 rounded-2xl shadow-xl shadow-orange-500/20 text-white relative overflow-hidden">
+                    <i data-lucide="trending-down" class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 transform rotate-12"></i>
+                    <p class="text-orange-100 text-xs font-bold mb-2 uppercase tracking-wider">মোট খরচ (অ্যাপ্রুভড)</p>
+                    <h3 class="text-4xl font-bold">৳${totalSpent}</h3>
+                </div>
+                <div class="bg-gradient-to-br from-emerald-500 to-teal-500 p-6 rounded-2xl shadow-xl shadow-emerald-500/20 text-white relative overflow-hidden">
+                    <i data-lucide="piggy-bank" class="absolute -right-4 -bottom-4 w-32 h-32 text-white/10 transform rotate-12"></i>
+                    <p class="text-emerald-100 text-xs font-bold mb-2 uppercase tracking-wider">বর্তমান ব্যালেন্স</p>
+                    <h3 class="text-4xl font-bold">৳${remaining}</h3>
+                </div>
+            </div>
+            
+            <div class="bg-white dark:bg-darkCard rounded-2xl shadow-sm border border-slate-200 dark:border-darkBorder p-6">
+                <h3 class="font-bold text-xl mb-6 border-b border-slate-100 dark:border-darkBorder pb-4">খাত অনুযায়ী খরচের সারাংশ</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                    ${catHtml || '<div class="col-span-full p-8 text-center text-slate-400 font-medium bg-slate-50 dark:bg-slate-800/50 rounded-xl">কোনো খরচের ডেটা নেই।</div>'}
+                </div>
+            </div>`;
+        };
+
+        const attachDynamicListeners = () => {
+            if(activeTab === 'expense') {
+                const typeSelect = document.getElementById('expType');
+                if(typeSelect) {
+                    typeSelect.addEventListener('change', (e) => {
+                        if(e.target.value === 'বাজার') {
+                            document.getElementById('bazaarSection').classList.remove('hidden');
+                            document.getElementById('otherSection').classList.add('hidden');
+                        } else {
+                            document.getElementById('bazaarSection').classList.add('hidden');
+                            document.getElementById('otherSection').classList.remove('hidden');
+                        }
+                    });
+                }
+
+                document.getElementById('addBazaarItemBtn')?.addEventListener('click', () => {
+                    bazaarItems.push({name: '', amount: ''});
+                    render();
+                });
+
+                document.querySelectorAll('.bazaar-name').forEach(el => el.addEventListener('input', (e) => bazaarItems[e.target.dataset.idx].name = e.target.value));
+                document.querySelectorAll('.bazaar-amount').forEach(el => el.addEventListener('input', (e) => bazaarItems[e.target.dataset.idx].amount = e.target.value));
+                document.querySelectorAll('.remove-bazaar-btn').forEach(el => el.addEventListener('click', (e) => {
+                    const idx = e.currentTarget.dataset.idx;
+                    if(bazaarItems.length > 1) { bazaarItems.splice(idx, 1); render(); }
+                }));
+
+                document.getElementById('submitExpBtn')?.addEventListener('click', async () => {
+                    const type = document.getElementById('expType').value;
+                    const date = document.getElementById('expDate').value;
+                    let total = 0, items = [], shopper = '';
+
+                    if(type === 'বাজার') {
+                        shopper = document.getElementById('expShopper').value;
+                        if(!shopper) return alert('কে বাজার করেছে তা নির্বাচন করুন!');
+                        items = bazaarItems.filter(i => i.name && i.amount).map(i => ({name: i.name, amount: Number(i.amount)}));
+                        total = items.reduce((sum, i) => sum + i.amount, 0);
+                    } else {
+                        total = Number(document.getElementById('expTotal').value);
+                    }
+
+                    if(total <= 0) return alert('সঠিক এমাউন্ট দিন!');
+
+                    const payload = { type, date, total, status: isAdmin ? 'approved' : 'pending', timestamp: new Date().toISOString() };
+                    if(type === 'বাজার') {
+                        payload.items = items;
+                        payload.shopper = shopper;
+                    }
+
+                    const btn = document.getElementById('submitExpBtn');
+                    btn.innerText = 'প্রসেসিং...'; btn.disabled = true;
+
+                    try {
+                        const newDoc = await addDoc(collection(db, 'artifacts', APP_ID, 'public', 'data', 'expenses'), payload);
+                        if(!isAdmin) {
+                            let msg = `<b>নতুন খরচ এন্ট্রি!</b>\nধরণ: ${type}\nটাকা: ৳${total}\n`;
+                            if(type === 'বাজার') {
+                                msg += `বাজার করেছে: ${shopper}\n\nআইটেম:\n`;
+                                items.forEach(i => msg += `- ${i.name}: ৳${i.amount}\n`);
+                            }
+                            await sendTelegramMsg(msg, newDoc.id);
+                            alert('আপনার এন্ট্রিটি সফলভাবে সেভ হয়েছে এবং অনুমোদনের জন্য পাঠানো হয়েছে।');
+                        }
+                        bazaarItems = [{name: '', amount: ''}];
+                        render();
+                    } catch(e) {}
+                });
+
+                document.querySelectorAll('.approve-exp-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                    await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'expenses', e.target.dataset.id), { status: 'approved' });
+                }));
+
+                document.querySelectorAll('.del-exp-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                    if(confirm('আপনি কি নিশ্চিত যে এটি মুছে ফেলতে চান?')) await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'expenses', e.target.dataset.id));
+                }));
+            }
+
+            document.querySelectorAll('.edit-routine-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const r = data.routine.find(x => x.id === e.currentTarget.dataset.id);
+                if(!r) return;
+                showModal(`
+                    <h3 class="font-bold text-xl mb-5 border-b border-slate-100 dark:border-darkBorder pb-3">রুটিন আপডেট: ${r.day}</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">সকাল</label>
+                            <input type="text" id="er-b" value="${r.b}" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">দুপুর</label>
+                            <input type="text" id="er-l" value="${r.l}" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">রাত</label>
+                            <input type="text" id="er-d" value="${r.d}" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 rounded-xl border border-slate-200 dark:border-darkBorder hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-sm transition-colors">বাতিল</button><button id="saveRoutine" class="flex-1 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-500/30 transition-all active:scale-95">সেভ করুন</button></div>
+                `, async () => {
+                    await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'routine', r.id), {
+                        b: document.getElementById('er-b').value, l: document.getElementById('er-l').value, d: document.getElementById('er-d').value
+                    });
+                    hideModal();
+                });
+            }));
+
+            document.querySelectorAll('.edit-member-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const m = data.members.find(x => x.id === e.currentTarget.dataset.id);
+                if(!m) return;
+                showModal(`
+                    <h3 class="font-bold text-xl mb-5 border-b border-slate-100 dark:border-darkBorder pb-3">${m.name} এর প্রোফাইল ও হিসাব</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">মোট জমা (৳)</label>
+                            <input type="number" id="em-p" value="${m.paid || 0}" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 mb-1 block">মাইনাস/ধার (৳)</label>
+                            <input type="number" id="em-b" value="${m.borrowed || 0}" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-500 mb-1 flex justify-between"><span>বাসায় না থাকার দিন</span> <span class="text-[10px] bg-purple-100 text-purple-600 px-2 rounded">৩ দিনের বেশি হলে রিবেট</span></label>
+                            <input type="number" id="em-a" value="${m.absentDays || 0}" placeholder="কত দিন বাসায় খায়নি?" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 rounded-xl border border-slate-200 dark:border-darkBorder hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-sm transition-colors">বাতিল</button><button id="saveMember" class="flex-1 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-500/30 transition-all active:scale-95">সেভ করুন</button></div>
+                `, async () => {
+                    await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'members', m.id), {
+                        paid: Number(document.getElementById('em-p').value), 
+                        borrowed: Number(document.getElementById('em-b').value),
+                        absentDays: Number(document.getElementById('em-a').value)
+                    });
+                    hideModal();
+                });
+            }));
+        };
+
+        const showModal = (content, onSave) => {
+            const mc = document.getElementById('modalContainer');
+            mc.innerHTML = `<div class="bg-white dark:bg-darkCard w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-darkBorder fade-in">${content}</div>`;
+            mc.classList.remove('hidden');
+            document.getElementById('closeModal')?.addEventListener('click', hideModal);
+            if(onSave) document.getElementById('saveRoutine')?.addEventListener('click', onSave);
+            if(onSave) document.getElementById('saveMember')?.addEventListener('click', onSave);
+        };
+        const hideModal = () => document.getElementById('modalContainer').classList.add('hidden');
+
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            isDark = !isDark;
+            document.documentElement.classList.toggle('dark', isDark);
+        });
+
+        document.getElementById('adminBtn').addEventListener('click', () => {
+            if(isAdmin) { 
+                isAdmin = false; 
+                localStorage.removeItem('mess_admin_token');
+                document.getElementById('adminBtnText').innerText = 'এডমিন'; 
+                render(); 
+                return; 
+            }
+            showModal(`
+                <div class="text-center mb-5"><div class="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-3"><i data-lucide="shield-check" class="w-6 h-6"></i></div><h3 class="font-bold text-xl">এডমিন প্যানেল</h3></div>
+                <input type="password" id="adminPassInput" class="w-full p-3 rounded-xl border dark:border-darkBorder bg-slate-50 dark:bg-slate-800 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-center tracking-widest font-mono" placeholder="পাসওয়ার্ড দিন">
+                <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 rounded-xl border border-slate-200 dark:border-darkBorder hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-sm transition-colors">বাতিল</button><button id="checkPass" class="flex-1 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-500/30 transition-all active:scale-95">লগইন</button></div>
+            `, () => {
+                const inputPass = document.getElementById('adminPassInput').value;
+                if(inputPass === CONFIG.ADMIN_PASS) {
+                    isAdmin = true; 
+                    localStorage.setItem('mess_admin_token', inputPass);
+                    document.getElementById('adminBtnText').innerText = 'লগআউট';
+                    hideModal(); 
+                    render();
+                } else alert('ভুল পাসওয়ার্ড!');
+            });
+            lucide.createIcons();
+        });
+
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', (e) => {
+            activeTab = e.currentTarget.dataset.tab;
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('text-blue-500');
+                b.classList.add('text-slate-400', 'dark:text-slate-500');
+            });
+            e.currentTarget.classList.remove('text-slate-400', 'dark:text-slate-500');
+            e.currentTarget.classList.add('text-blue-500');
+            render();
+        }));
+
+        initApp();
+    </script>
+</body>
+</html>
