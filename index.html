@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>মেস ম্যানেজমেন্ট - Premium V4</title>
+    <title>মেস ম্যানেজমেন্ট - Premium Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -72,20 +72,33 @@
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/+esm';
 
-        let envTgToken = import.meta.env?.VITE_TG_TOKEN || '';
-        let envTgChatId = import.meta.env?.VITE_TG_CHAT_ID || '';
-        let envAdminPass = import.meta.env?.VITE_ADMIN_PASS || 'admin123';
-        let supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || '';
-        let supabaseKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || '';
+        // =========================================================================
+        // 🔴🔴🔴 আপনার সব লিঙ্ক এবং পাসওয়ার্ড নিচে বসান 🔴🔴🔴
+        // =========================================================================
+        const CONFIG = {
+            SUPABASE_URL: "https://qqjfrdjgpjhgrfzhfgay.supabase.co",   // যেমন: https://qqjfrdj...supabase.co
+            SUPABASE_KEY: "sb_publishable_PvTlRVCqaorax2qjd-9h-Q_vTWd-ziB", // অনেক বড় কোডটি
+            TG_TOKEN:     "8822573911:AAHtJOAmQv92s15G3qBktTt5lfbbY6sgL1Q",
+            TG_CHAT_ID:   "8837571965",
+            ADMIN_PASS:   "osmankhalu69", // এডমিন পাসওয়ার্ড
+            
+            MONTHLY_FEE: 5000, 
+            REBATE_PER_DAY: 50, 
+            MIN_ABSENT_DAYS_FOR_REBATE: 3
+        };
+        // =========================================================================
 
-        const CONFIG = { TG_TOKEN: envTgToken, TG_CHAT_ID: envTgChatId, ADMIN_PASS: envAdminPass, MONTHLY_FEE: 5000, REBATE_PER_DAY: 50, MIN_ABSENT_DAYS_FOR_REBATE: 3 };
         const days = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
-        let activeTab = 'routine';
+        let activeTab = 'finance'; // সরাসরি মেম্বার হিসাব ট্যাবে ওপেন হবে
         let isAdmin = localStorage.getItem('mess_admin_token') === CONFIG.ADMIN_PASS;
         let isDark = true; 
 
         let supabase = null;
-        if (supabaseUrl && supabaseKey) supabase = createClient(supabaseUrl, supabaseKey);
+        try {
+            if (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_URL.startsWith('http')) {
+                supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+            }
+        } catch(e) { console.error("Supabase Setup Error:", e); }
 
         let data = { routine: [], members: [], expenses: [], logs: [] };
         let bazaarItems = [{name: '', amount: ''}];
@@ -108,9 +121,8 @@
             setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = '0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
         };
 
-        // Updated Telegram Bot Logic (Now supports inline buttons!)
         const sendTelegramMsg = async (msg, expId = null) => {
-            if (!CONFIG.TG_TOKEN || !CONFIG.TG_CHAT_ID) return;
+            if (!CONFIG.TG_TOKEN || !CONFIG.TG_CHAT_ID || !CONFIG.TG_TOKEN.startsWith('bot') && !CONFIG.TG_TOKEN.includes(':')) return;
             const chatIds = CONFIG.TG_CHAT_ID.split(',');
             const url = `https://api.telegram.org/bot${CONFIG.TG_TOKEN}/sendMessage`;
             const domain = window.location.origin + window.location.pathname;
@@ -136,11 +148,10 @@
             
             data.logs.unshift(newLog);
             if (supabase) await supabase.from('activity_logs').insert([newLog]);
-            if (!specificId) await sendTelegramMsg(`🔔 <b>${action}</b>\n📝 ${details}\n⏰ সময়: ${timestamp}\n🔑 Ref ID: #${logId}`);
+            await sendTelegramMsg(`🔔 <b>${action}</b>\n📝 ${details}\n⏰ সময়: ${timestamp}\n🔑 Ref ID: #${logId}`);
             return logId;
         };
 
-        // URL Action Handler (For Telegram Buttons)
         const handleUrlActions = async () => {
             const params = new URLSearchParams(window.location.search);
             const action = params.get('action');
@@ -151,11 +162,11 @@
                 if (token === CONFIG.ADMIN_PASS) {
                     if (action === 'approve_exp') {
                         if (supabase) await supabase.from('expenses').update({ status: 'approved' }).eq('id', id);
-                        await logActivity('Expense Approved via Telegram', `Ref #${id} অনুমোদিত হয়েছে।`, id);
+                        await logActivity('Expense Approved (Telegram)', `Ref #${id} অনুমোদিত হয়েছে।`, id);
                         alert('✅ খরচটি সফলভাবে অ্যাপ্রুভ হয়েছে!');
                     } else if (action === 'reject_exp') {
                         if (supabase) await supabase.from('expenses').delete().eq('id', id);
-                        await logActivity('Expense Rejected via Telegram', `Ref #${id} বাতিল করা হয়েছে।`, id);
+                        await logActivity('Expense Rejected (Telegram)', `Ref #${id} বাতিল করা হয়েছে।`, id);
                         alert('❌ খরচটি বাতিল করে ডিলিট করা হয়েছে!');
                     }
                 } else { alert('ভুল এডমিন টোকেন!'); }
@@ -167,7 +178,9 @@
             document.documentElement.classList.add('dark');
             if (isAdmin) document.getElementById('adminBtnText').innerText = 'লগআউট';
 
-            if (supabase) {
+            if (!supabase) {
+                showToast('সুপাবেস লিংক ঠিক নেই। কোড চেক করুন!', 'error');
+            } else {
                 try {
                     const [resR, resM, resE, resL] = await Promise.all([
                         supabase.from('routine').select('*').order('id'),
@@ -179,10 +192,21 @@
                     if (resM.data) data.members = resM.data;
                     if (resE.data) data.expenses = resE.data;
                     if (resL.data) data.logs = resL.data;
-                } catch (err) { console.log(err); }
+                } catch (err) { 
+                    showToast('ডাটাবেজ থেকে ডেটা আনতে সমস্যা হচ্ছে!', 'error');
+                    console.log(err); 
+                }
             }
             await handleUrlActions();
             render();
+            
+            // Set active tab visually
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                if(b.dataset.tab === activeTab) {
+                    b.classList.replace('text-slate-400', 'text-indigo-600');
+                    b.classList.replace('dark:text-slate-500', 'dark:text-indigo-400');
+                }
+            });
         };
 
         const render = () => {
@@ -262,7 +286,7 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">`;
 
-            if(data.members.length === 0) html += `<div class="col-span-full p-8 text-center text-slate-500 glass-panel rounded-3xl">কোনো সদস্য নেই। এডমিন প্যানেল থেকে সদস্য যোগ করুন।</div>`;
+            if(data.members.length === 0) html += `<div class="col-span-full p-8 text-center text-slate-500 glass-panel rounded-3xl border border-slate-700">ডাটাবেজ থেকে ডেটা লোড হচ্ছে অথবা সদস্য নেই...</div>`;
 
             html += data.members.map(m => {
                 let absent = m.absentDays || 0;
@@ -408,14 +432,7 @@
                     showToast(isAdmin ? 'খরচ সরাসরি অ্যাপ্রুভ হয়েছে!' : 'খরচ সেভ হয়েছে, পেন্ডিং আছে।');
                     
                     const msg = `🔔 <b>নতুন খরচ যুক্ত</b>\n📋 খাত: ${type}\n💰 পরিমাণ: ৳${total}\n${shopper ? `👤 মারফত: ${shopper}\n` : ''}🔑 ID: #${expId.substring(expId.length-5)}`;
-                    
-                    // If not admin, send message with Approve/Reject buttons
-                    if (!isAdmin) {
-                        await sendTelegramMsg(msg, expId); 
-                    } else {
-                        await sendTelegramMsg(msg + '\n✅ (Admin Auto-Approved)');
-                    }
-                    
+                    if (!isAdmin) { await sendTelegramMsg(msg, expId); } else { await sendTelegramMsg(msg + '\n✅ (Admin Auto-Approved)'); }
                     await logActivity('নতুন খরচ যুক্ত', `${type} খাতে ৳${total} এন্ট্রি হয়েছে।`, expId);
                 });
 
@@ -449,8 +466,11 @@
                     <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="saveRoutine" class="flex-1 py-3 text-sm bg-indigo-600 text-white rounded-xl font-bold">সেভ</button></div>
                 `, async () => {
                     const updated = { b: document.getElementById('er-b').value, l: document.getElementById('er-l').value, d: document.getElementById('er-d').value };
-                    if (supabase) await supabase.from('routine').update(updated).eq('id', r.id);
-                    Object.assign(r, updated); hideModal(); render(); showToast('রুটিন আপডেট হয়েছে!');
+                    if (supabase) {
+                        const { error } = await supabase.from('routine').update(updated).eq('id', r.id);
+                        if (error) return showToast('Supabase Error: ' + error.message, 'error');
+                    }
+                    Object.assign(r, updated); hideModal(); render(); showToast('রুটিন সেভ হয়েছে ডাটাবেজে!');
                     await logActivity('রুটিন আপডেট', `${r.day} বারের খাবারের মেনু পরিবর্তন করা হয়েছে।`);
                 });
             }));
@@ -463,18 +483,54 @@
                     <div class="space-y-4">
                         <div><label class="text-xs font-bold text-slate-500 mb-1 block">মোট জমা (৳)</label><input type="number" id="em-p" value="${m.paid || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
                         <div><label class="text-xs font-bold text-slate-500 mb-1 block">মাইনাস/ধার (৳)</label><input type="number" id="em-b" value="${m.borrowed || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
-                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">বন্ধ থাকা দিন</label><input type="number" id="em-a" value="${m.absentDays || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 flex justify-between"><span>বন্ধ থাকা দিন</span> <span class="text-[10px] bg-indigo-100 text-indigo-600 px-2 rounded">রিবেটের জন্য</span></label><input type="number" id="em-a" value="${m.absentDays || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
                     </div>
-                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="saveMember" class="flex-1 py-3 text-sm bg-indigo-600 text-white rounded-xl font-bold">আপডেট</button></div>
+                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="saveMember" class="flex-1 py-3 text-sm bg-indigo-600 text-white rounded-xl font-bold">আপডেট করুন</button></div>
                 `, async () => {
-                    const updated = { paid: Number(document.getElementById('em-p').value), borrowed: Number(document.getElementById('em-b').value), absentDays: Number(document.getElementById('em-a').value) };
-                    if (supabase) await supabase.from('members').update(updated).eq('id', m.id);
-                    Object.assign(m, updated); hideModal(); render(); showToast('হিসাব সেভ হয়েছে!');
-                    await logActivity('সদস্য হিসাব আপডেট', `${m.name} এর প্রোফাইলের জমা/বাকি আপডেট করা হয়েছে।`);
+                    const newPaid = Number(document.getElementById('em-p').value);
+                    const oldPaid = m.paid || 0;
+                    
+                    const updated = { paid: newPaid, borrowed: Number(document.getElementById('em-b').value), absentDays: Number(document.getElementById('em-a').value) };
+                    
+                    if (supabase) {
+                        const { error } = await supabase.from('members').update(updated).eq('id', m.id);
+                        if (error) return showToast('Supabase Error: ' + error.message, 'error');
+                    }
+                    
+                    Object.assign(m, updated); hideModal(); render(); showToast('হিসাব সরাসরি ডাটাবেজে সেভ হয়েছে!');
+                    
+                    // History Logic for Money Added
+                    if (newPaid > oldPaid) {
+                        await logActivity('টাকা জমা (ডাটাবেজ সেভ)', `${m.name} নতুন করে ৳${newPaid - oldPaid} জমা দিয়েছে। (মোট জমা: ৳${newPaid})`);
+                    } else if (newPaid < oldPaid) {
+                        await logActivity('হিসাব মাইনাস', `${m.name} এর জমা থেকে ৳${oldPaid - newPaid} কমানো হয়েছে।`);
+                    } else {
+                        await logActivity('সদস্য হিসাব আপডেট', `${m.name} এর প্রোফাইল অন্যান্য তথ্য আপডেট করা হয়েছে।`);
+                    }
                 });
             }));
 
-            // DOUBLE PASSWORD RESET SYSTEM
+            document.getElementById('addMemberBtn')?.addEventListener('click', () => {
+                showModal(`
+                    <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-3">নতুন সদস্য যোগ করুন</h3>
+                    <div><label class="text-xs font-bold text-slate-500 mb-1 block">সদস্যের নাম</label><input type="text" id="new-m-name" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
+                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="saveNewMember" class="flex-1 py-3 text-sm bg-indigo-600 text-white rounded-xl font-bold">যোগ করুন</button></div>
+                `, async () => {
+                    const name = document.getElementById('new-m-name').value;
+                    if(!name) return showToast('নাম ফাঁকা রাখা যাবে না!', 'error');
+                    const newId = String(Date.now());
+                    const newM = { id: newId, name, paid: 0, borrowed: 0, absentDays: 0 };
+                    if (supabase) {
+                        const { error } = await supabase.from('members').insert([newM]);
+                        if (error) return showToast('Error: ' + error.message, 'error');
+                    }
+                    data.members.push(newM);
+                    hideModal(); render(); showToast('ডাটাবেজে নতুন সদস্য যোগ হয়েছে!');
+                    await logActivity('নতুন সদস্য', `সিস্টেমে ${name} কে নতুন সদস্য হিসেবে যুক্ত করা হয়েছে।`);
+                });
+                document.getElementById('saveNewMember')?.addEventListener('click', window._modalSaveCallback);
+            });
+
             document.getElementById('resetAllBtn')?.addEventListener('click', () => {
                 showModal(`
                     <h3 class="font-bold text-rose-500 text-lg mb-4 border-b border-slate-700 pb-3 text-center">সতর্কতা: রিসেট করুন (ধাপ ১/২)</h3>
@@ -492,9 +548,8 @@
                                 <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="btnFinalReset" class="flex-1 py-3 text-sm bg-rose-600 text-white rounded-xl font-bold shadow-lg shadow-rose-500/30">সব মুছে ফেলুন</button></div>
                             `, async () => {
                                 if(document.getElementById('resetPass2').value === CONFIG.ADMIN_PASS) {
-                                    // RESET LOGIC
                                     if(supabase) {
-                                        await supabase.from('expenses').delete().neq('id', '0'); // delete all
+                                        await supabase.from('expenses').delete().neq('id', '0'); 
                                         for(let m of data.members) { await supabase.from('members').update({paid:0, borrowed:0, absentDays:0}).eq('id', m.id); }
                                     }
                                     data.expenses = [];
@@ -511,7 +566,6 @@
             });
         };
 
-        // Render History with Single Log Delete Function
         const openHistoryModal = () => {
             const logsHtml = data.logs.length ? data.logs.map(l => `
                 <div class="p-3 bg-slate-800 rounded-xl mb-2 flex justify-between items-start">
@@ -530,7 +584,6 @@
                 <button id="closeModal" class="w-full mt-4 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বন্ধ করুন</button>
             `);
 
-            // Attach log delete listeners
             if(isAdmin) {
                 document.querySelectorAll('.delete-log-btn').forEach(btn => btn.addEventListener('click', (e) => {
                     const idToDel = e.currentTarget.dataset.id;
@@ -545,7 +598,7 @@
                                 if(supabase) await supabase.from('activity_logs').delete().eq('id', idToDel);
                                 data.logs = data.logs.filter(x => x.id !== idToDel);
                                 hideModal(); showToast('হিস্ট্রি ডিলিট হয়েছে!', 'error');
-                                setTimeout(openHistoryModal, 300); // reopen history
+                                setTimeout(openHistoryModal, 300); 
                             } else showToast('ভুল পাসওয়ার্ড!', 'error');
                         });
                         document.getElementById('confirmDelLog')?.addEventListener('click', window._modalSaveCallback);
