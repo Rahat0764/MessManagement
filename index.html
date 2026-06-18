@@ -57,7 +57,6 @@
         <main id="app-content" class="max-w-5xl mx-auto fade-in"></main>
     </div>
 
-    <!-- Bottom Navigation -->
     <nav class="w-full glass-panel z-40 fixed bottom-0 left-0 border-t border-slate-200 dark:border-darkBorder pb-safe">
         <div class="max-w-5xl mx-auto flex justify-around items-center h-16 px-2">
             <button class="nav-btn flex flex-col items-center gap-1 w-[4.5rem] py-1 transition-all duration-300" data-tab="routine"><i data-lucide="calendar-days" class="w-[22px] h-[22px]"></i><span class="text-[10px] font-bold">রুটিন</span></button>
@@ -67,26 +66,22 @@
         </div>
     </nav>
 
-    <!-- Modal & Toasts -->
     <div id="modalContainer" class="fixed inset-0 bg-slate-900/80 dark:bg-black/80 z-50 hidden flex justify-center items-center px-4 backdrop-blur-sm"></div>
     <div id="toast-container" class="fixed top-20 right-4 z-[60] flex flex-col gap-2 pointer-events-none"></div>
 
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/+esm';
 
-        // =========================================================================
         const CONFIG = {
             SUPABASE_URL: "https://qqjfrdjgpjhgrfzhfgay.supabase.co",   
             SUPABASE_KEY: "sb_publishable_PvTlRVCqaorax2qjd-9h-Q_vTWd-ziB", 
             TG_TOKEN:     "8822573911:AAHtJOAmQv92s15G3qBktTt5lfbbY6sgL1Q",
             TG_CHAT_ID:   "8837571965",
             ADMIN_PASS:   "osmankhalu69", 
-            
             MONTHLY_FEE: 5000, 
             REBATE_PER_DAY: 50, 
             MIN_ABSENT_DAYS_FOR_REBATE: 3
         };
-        // =========================================================================
 
         const days = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
         let activeTab = 'finance'; 
@@ -519,7 +514,7 @@
                             setTimeout(() => {
                                 showModal(`
                                     <h3 class="font-bold text-rose-500 text-lg mb-4 border-b border-slate-700 pb-3 text-center">চূড়ান্ত কনফার্মেশন (ধাপ ২/২)</h3>
-                                    <p class="text-xs text-rose-400 mb-4 text-center">এটি আর পরিবর্তন করা যাবে না! আবার পাসওয়ার্ড দিন:</p>
+                                    <p class="text-xs text-rose-400 mb-4 text-center">এটি আর পরিবর্তন করা যাবে পশ্চাতে। আবার পাসওয়ার্ড দিন:</p>
                                     <input type="password" id="resetPass2" class="w-full p-3 bg-slate-800 border border-rose-500/50 text-center text-sm rounded-xl outline-none tracking-widest font-mono focus:border-rose-500" placeholder="কনফার্ম পাসওয়ার্ড">
                                     <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="btnFinalReset" class="flex-1 py-3 text-sm bg-rose-600 text-white rounded-xl font-bold shadow-lg shadow-rose-500/30">সব মুছে ফেলুন</button></div>
                                 `, async () => {
@@ -631,6 +626,16 @@
                 const inputPass = document.getElementById('adminPassInput').value;
                 if(inputPass === CONFIG.ADMIN_PASS) { isAdmin = true; localStorage.setItem('mess_admin_token', inputPass); document.getElementById('adminBtnText').innerText = 'লগআউট'; hideModal(); render(); showToast('লগইন সফল!'); } 
                 else showToast('ভুল পাসওয়ার্ড!', 'error');
+            });
+        });
+
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                activeTab = e.currentTarget.dataset.tab;
+                document.getElementById('app-content').classList.remove('fade-in');
+                void document.getElementById('app-content').offsetWidth;
+                document.getElementById('app-content').classList.add('fade-in');
+                render();
             });
         });
 
