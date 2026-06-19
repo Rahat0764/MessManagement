@@ -42,11 +42,11 @@
                 <div><h1 class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">মেস ম্যানেজার</h1></div>
             </div>
             <div class="flex items-center gap-3">
-                <button id="themeToggle" class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-yellow-400">
+                <button id="themeToggle" class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-yellow-400 transition-transform active:scale-95">
                     <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
                     <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
                 </button>
-                <button id="adminBtn" class="flex items-center gap-1 text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-500/20">
+                <button id="adminBtn" class="flex items-center gap-1 text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-500/20 transition-all active:scale-95">
                     <i data-lucide="key" class="w-4 h-4"></i> <span id="adminBtnText">এডমিন</span>
                 </button>
             </div>
@@ -58,15 +58,16 @@
     </div>
 
     <nav class="w-full glass-panel z-40 fixed bottom-0 left-0 border-t border-slate-200 dark:border-darkBorder pb-safe">
-        <div class="max-w-5xl mx-auto flex justify-around items-center h-16 px-2">
-            <button class="nav-btn flex flex-col items-center gap-1 w-[4.5rem] py-1 transition-all duration-300" data-tab="routine"><i data-lucide="calendar-days" class="w-[22px] h-[22px]"></i><span class="text-[10px] font-bold">রুটিন</span></button>
-            <button class="nav-btn flex flex-col items-center gap-1 w-[4.5rem] py-1 transition-all duration-300" data-tab="finance"><i data-lucide="users" class="w-[22px] h-[22px]"></i><span class="text-[10px] font-bold">সদস্য</span></button>
-            <button class="nav-btn flex flex-col items-center gap-1 w-[4.5rem] py-1 transition-all duration-300" data-tab="expense"><i data-lucide="shopping-cart" class="w-[22px] h-[22px]"></i><span class="text-[10px] font-bold">খরচ</span></button>
-            <button class="nav-btn flex flex-col items-center gap-1 w-[4.5rem] py-1 transition-all duration-300" data-tab="overview"><i data-lucide="pie-chart" class="w-[22px] h-[22px]"></i><span class="text-[10px] font-bold">হিসাব</span></button>
+        <div class="max-w-5xl mx-auto flex justify-around items-center h-16 px-1">
+            <button class="nav-btn flex flex-col items-center gap-1 flex-1 py-1 transition-all duration-300" data-tab="routine"><i data-lucide="calendar-days" class="w-5 h-5"></i><span class="text-[10px] font-bold">রুটিন</span></button>
+            <button class="nav-btn flex flex-col items-center gap-1 flex-1 py-1 transition-all duration-300" data-tab="finance"><i data-lucide="users" class="w-5 h-5"></i><span class="text-[10px] font-bold">সদস্য</span></button>
+            <button class="nav-btn flex flex-col items-center gap-1 flex-1 py-1 transition-all duration-300" data-tab="tasks"><i data-lucide="clipboard-list" class="w-5 h-5"></i><span class="text-[10px] font-bold">কাজ</span></button>
+            <button class="nav-btn flex flex-col items-center gap-1 flex-1 py-1 transition-all duration-300" data-tab="expense"><i data-lucide="shopping-cart" class="w-5 h-5"></i><span class="text-[10px] font-bold">খরচ</span></button>
+            <button class="nav-btn flex flex-col items-center gap-1 flex-1 py-1 transition-all duration-300" data-tab="overview"><i data-lucide="pie-chart" class="w-5 h-5"></i><span class="text-[10px] font-bold">হিসাব</span></button>
         </div>
     </nav>
 
-    <div id="modalContainer" class="fixed inset-0 bg-slate-900/80 dark:bg-black/80 z-50 hidden flex justify-center items-center px-4 backdrop-blur-sm"></div>
+    <div id="modalContainer" class="fixed inset-0 bg-slate-900/80 dark:bg-black/80 z-50 hidden flex justify-center items-center px-4 backdrop-blur-sm transition-opacity"></div>
     <div id="toast-container" class="fixed top-20 right-4 z-[60] flex flex-col gap-2 pointer-events-none"></div>
 
     <script type="module">
@@ -92,7 +93,7 @@
         try { if (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_URL.startsWith('http')) supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY); } 
         catch(e) {}
 
-        let data = { routine: [], members: [], expenses: [], logs: [] };
+        let data = { routine: [], members: [], expenses: [], logs: [], cleaning: { id: '1', queue: [], current_seq: 0 } };
         let bazaarItems = [{name: '', amount: ''}];
 
         const isCurrentMonth = (dateStr) => {
@@ -119,12 +120,12 @@
             const icon = isSuccess ? 'check-circle' : 'alert-circle';
             showModal(`
                 <div class="text-center p-2">
-                    <div class="w-16 h-16 bg-${color}-500/10 text-${color}-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div class="w-16 h-16 bg-${color}-500/10 text-${color}-500 rounded-full flex items-center justify-center mx-auto mb-4 scale-in">
                         <i data-lucide="${icon}" class="w-8 h-8"></i>
                     </div>
                     <h3 class="font-bold text-xl mb-2 text-slate-800 dark:text-white">${title}</h3>
                     <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">${message}</p>
-                    <button id="closeModal" class="w-full py-3 bg-${color}-600 hover:bg-${color}-700 text-white rounded-xl font-bold transition-colors">ঠিক আছে</button>
+                    <button id="closeModal" class="w-full py-3 bg-${color}-600 hover:bg-${color}-700 text-white rounded-xl font-bold transition-all active:scale-95">ঠিক আছে</button>
                 </div>
             `);
         };
@@ -152,10 +153,6 @@
         const logActivity = async (action, details, specificId = null) => {
             const logId = specificId || generateRefId();
             const timestamp = new Date().toLocaleString('bn-BD');
-            
-            const isDuplicate = data.logs.some(l => l.action === action && l.details === details && (Date.now() - parseInt(l.id.split('-')[0])) < 2000);
-            if(isDuplicate) return logId;
-
             const newLog = { id: generateUniqueId(), log_id: logId, action, details, timestamp };
             data.logs.unshift(newLog);
             if (supabase) await supabase.from('activity_logs').insert([newLog]);
@@ -175,11 +172,11 @@
                     if (token === CONFIG.ADMIN_PASS) {
                         if (action === 'approve_exp') {
                             if (supabase) await supabase.from('expenses').update({ status: 'approved' }).eq('id', id);
-                            await logActivity('Expense Approved (Telegram)', `Ref #${id} অনুমোদিত হয়েছে।`, id);
+                            await logActivity('Expense Approved', `Ref #${id} অনুমোদিত হয়েছে।`, id);
                             showCustomAlert('অ্যাপ্রুভড!', 'খরচটি সফলভাবে ডাটাবেজে অ্যাপ্রুভ করা হয়েছে।', true);
                         } else if (action === 'reject_exp') {
                             if (supabase) await supabase.from('expenses').delete().eq('id', id);
-                            await logActivity('Expense Rejected (Telegram)', `Ref #${id} বাতিল করা হয়েছে।`, id);
+                            await logActivity('Expense Rejected', `Ref #${id} বাতিল করা হয়েছে।`, id);
                             showCustomAlert('বাতিলকৃত!', 'খরচটি ডাটাবেজ থেকে মুছে ফেলা হয়েছে।', false);
                         }
                     } else { showCustomAlert('ভুল পাসওয়ার্ড!', 'এডমিন টোকেন সঠিক নয়। অনুমোদন দেওয়া সম্ভব হয়নি।', false); }
@@ -191,19 +188,35 @@
             document.documentElement.classList.add('dark');
             if (isAdmin) document.getElementById('adminBtnText').innerText = 'লগআউট';
 
-            if (!supabase) { showToast('সুপাবেস লিংক ঠিক নেই। কোড চেক করুন!', 'error'); } 
+            if (!supabase) { showToast('সুপাবেস লিংক ঠিক নেই।', 'error'); } 
             else {
                 try {
-                    const [resR, resM, resE, resL] = await Promise.all([
+                    const [resR, resM, resE, resL, resC] = await Promise.all([
                         supabase.from('routine').select('*').order('id'),
                         supabase.from('members').select('*').order('id'),
                         supabase.from('expenses').select('*').order('date', { ascending: false }),
-                        supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }).limit(50)
+                        supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }).limit(50),
+                        supabase.from('cleaning_tasks').select('*').eq('id', '1')
                     ]);
                     if (resR.data) data.routine = resR.data;
                     if (resM.data) data.members = resM.data;
                     if (resE.data) data.expenses = resE.data;
                     if (resL.data) data.logs = resL.data;
+                    if (resC.data && resC.data.length > 0) {
+                        data.cleaning = resC.data[0];
+                    } else if (data.members.length > 0) {
+                        data.cleaning.queue = data.members.map(m => ({ id: m.id, name: m.name, seq: 0 }));
+                        await supabase.from('cleaning_tasks').insert([data.cleaning]);
+                    }
+                    
+                    if (data.members.length > 0 && data.cleaning.queue.length > 0) {
+                        const qIds = data.cleaning.queue.map(q => String(q.id));
+                        const missing = data.members.filter(m => !qIds.includes(String(m.id)));
+                        if (missing.length > 0) {
+                            missing.forEach(m => data.cleaning.queue.push({ id: m.id, name: m.name, seq: 0 }));
+                            await supabase.from('cleaning_tasks').update({ queue: data.cleaning.queue }).eq('id', '1');
+                        }
+                    }
                 } catch (err) {}
             }
             await handleUrlActions();
@@ -228,6 +241,7 @@
             const content = document.getElementById('app-content');
             if (activeTab === 'routine') content.innerHTML = buildRoutineHTML();
             else if (activeTab === 'finance') content.innerHTML = buildFinanceHTML();
+            else if (activeTab === 'tasks') content.innerHTML = buildTasksHTML();
             else if (activeTab === 'expense') content.innerHTML = buildExpenseHTML();
             else if (activeTab === 'overview') content.innerHTML = buildOverviewHTML();
             lucide.createIcons(); attachDynamicListeners(); updateNavUI();
@@ -256,11 +270,11 @@
 
             if(todayRoutine) {
                 html += `
-                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 mb-6 shadow-xl text-white relative overflow-hidden">
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 mb-6 shadow-xl text-white relative overflow-hidden transition-all duration-500 hover:shadow-indigo-500/40">
                     <i data-lucide="chef-hat" class="absolute -right-6 -top-6 w-32 h-32 text-white/10 opacity-50 transform rotate-12"></i>
                     <div class="flex justify-between items-center mb-6 relative z-10">
                         <div><span class="bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-sm font-bold">${todayRoutine.day}</span></div>
-                        ${isAdmin ? `<button class="edit-routine-btn p-2 bg-white/10 hover:bg-white/20 rounded-lg" data-id="${todayRoutine.id}"><i data-lucide="edit-3" class="w-4 h-4"></i></button>` : ''}
+                        ${isAdmin ? `<button class="edit-routine-btn p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors" data-id="${todayRoutine.id}"><i data-lucide="edit-3" class="w-4 h-4"></i></button>` : ''}
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
                         <div class="bg-white/10 backdrop-blur border border-white/20 p-4 rounded-2xl"><div class="flex items-center gap-2 text-indigo-100 mb-1 font-semibold text-xs"><i data-lucide="sunrise" class="w-4 h-4"></i> সকাল</div><div class="text-lg font-bold">${todayRoutine.b || 'নির্ধারিত নেই'}</div></div>
@@ -277,10 +291,10 @@
                         <thead><tr class="text-slate-500 border-b border-slate-100 dark:border-darkBorder/50 text-sm"><th class="p-4 font-semibold">বার</th><th class="p-4 font-semibold">সকাল</th><th class="p-4 font-semibold">দুপুর</th><th class="p-4 font-semibold">রাত</th>${isAdmin ? '<th class="p-4 text-right">এডিট</th>' : ''}</tr></thead>
                         <tbody>
                             ${data.routine.length ? data.routine.map(r => `
-                                <tr class="border-b border-slate-50 dark:border-darkBorder/30 text-sm ${r.day === today ? 'bg-indigo-50/50 dark:bg-indigo-500/10' : ''}">
+                                <tr class="border-b border-slate-50 dark:border-darkBorder/30 text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${r.day === today ? 'bg-indigo-50/50 dark:bg-indigo-500/10' : ''}">
                                     <td class="p-4 font-bold text-indigo-600 dark:text-indigo-400">${r.day}</td>
                                     <td class="p-4 text-slate-600 dark:text-slate-300">${r.b || '-'}</td><td class="p-4 text-slate-600 dark:text-slate-300">${r.l || '-'}</td><td class="p-4 text-slate-600 dark:text-slate-300">${r.d || '-'}</td>
-                                    ${isAdmin ? `<td class="p-4 text-right"><button class="text-slate-400 hover:text-indigo-500 edit-routine-btn p-2 bg-slate-100 dark:bg-slate-800 rounded-lg" data-id="${r.id}"><i data-lucide="edit-2" class="w-4 h-4"></i></button></td>` : ''}
+                                    ${isAdmin ? `<td class="p-4 text-right"><button class="text-slate-400 hover:text-indigo-500 edit-routine-btn p-2 bg-slate-100 dark:bg-slate-800 rounded-lg transition-colors" data-id="${r.id}"><i data-lucide="edit-2" class="w-4 h-4"></i></button></td>` : ''}
                                 </tr>
                             `).join('') : `<tr><td colspan="5" class="p-8 text-center text-slate-500">ডাটাবেজে রুটিন নেই। ডেটা ইনপুট করুন।</td></tr>`}
                         </tbody>
@@ -295,7 +309,7 @@
             <div class="flex justify-between items-center mb-5">
                 <h3 class="font-bold text-xl">সদস্যদের হিসাব</h3>
                 <div class="flex gap-2">
-                    ${isAdmin ? `<button id="addMemberBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md"><i data-lucide="plus" class="inline w-3 h-3"></i> সদস্য</button>` : ''}
+                    ${isAdmin ? `<button id="addMemberBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md transition-all active:scale-95"><i data-lucide="plus" class="inline w-3 h-3"></i> সদস্য</button>` : ''}
                     <div class="text-[10px] font-bold text-slate-500 bg-slate-200 dark:bg-slate-800 px-3 py-1.5 rounded-lg border dark:border-slate-700">ফি: ৳${CONFIG.MONTHLY_FEE}</div>
                 </div>
             </div>
@@ -315,10 +329,10 @@
                 else { badgeColor = 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'; textColor = 'text-slate-600 dark:text-slate-400'; badgeText = 'হিসাব ক্লিয়ার'; badgeIcon = 'check-circle-2'; }
 
                 return `
-                <div class="glass-panel p-5 rounded-3xl border border-slate-200 dark:border-darkBorder shadow-sm relative overflow-hidden">
-                    ${isAdmin ? `<button class="edit-member-btn absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl hover:text-indigo-500" data-id="${m.id}"><i data-lucide="edit-2" class="w-4 h-4"></i></button>` : ''}
+                <div class="glass-panel p-5 rounded-3xl border border-slate-200 dark:border-darkBorder shadow-sm relative overflow-hidden transition-all duration-300 hover:shadow-md">
+                    ${isAdmin ? `<button class="edit-member-btn absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl hover:text-indigo-500 transition-colors" data-id="${m.id}"><i data-lucide="edit-2" class="w-4 h-4"></i></button>` : ''}
                     <div class="flex items-center gap-4 mb-4">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-100 to-purple-200 dark:from-indigo-900 dark:to-purple-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-xl">${m.name.charAt(0)}</div>
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-100 to-purple-200 dark:from-indigo-900 dark:to-purple-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-xl shadow-inner">${m.name.charAt(0)}</div>
                         <div><h4 class="font-bold text-lg">${m.name}</h4><p class="text-xs text-slate-500">অফ: ${absent} দিন (রিবেট ৳${rebate})</p></div>
                     </div>
                     <div class="grid grid-cols-2 gap-2 mb-4 text-sm border-t border-b border-slate-100 dark:border-darkBorder/50 py-3">
@@ -326,7 +340,7 @@
                         <div class="flex justify-between"><span class="text-slate-500">খরচ:</span> <span class="font-bold">৳${mealCost}</span></div>
                         ${m.borrowed > 0 ? `<div class="flex justify-between col-span-2"><span class="text-slate-500">মাইনাস/ধার:</span> <span class="font-bold text-rose-500">৳${m.borrowed}</span></div>` : ''}
                     </div>
-                    <div class="${badgeColor} border p-3 rounded-2xl flex items-center justify-between">
+                    <div class="${badgeColor} border p-3 rounded-2xl flex items-center justify-between transition-colors">
                         <div class="flex items-center gap-2 ${textColor}"><i data-lucide="${badgeIcon}" class="w-5 h-5"></i><span class="text-xs font-bold uppercase">${badgeText}</span></div>
                         <span class="text-lg font-bold ${textColor}">৳${Math.abs(netBalance)}</span>
                     </div>
@@ -335,12 +349,57 @@
             return html + `</div>`;
         };
 
+        const buildTasksHTML = () => {
+            let html = `
+            <div class="max-w-2xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-bold text-xl flex items-center gap-2"><i data-lucide="sparkles" class="w-6 h-6 text-indigo-500"></i> বাথরুম পরিষ্কারের রুটিন</h3>
+                    ${isAdmin ? `<button id="resetTasksBtn" class="bg-rose-500/10 text-rose-500 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-rose-500/20 transition-colors"><i data-lucide="refresh-cw" class="w-3 h-3 inline"></i> রিসেট</button>` : ''}
+                </div>
+                <div class="glass-panel rounded-3xl border border-slate-200 dark:border-darkBorder overflow-hidden shadow-sm">
+                    <div class="p-4 border-b border-slate-200 dark:border-darkBorder bg-slate-50/50 dark:bg-slate-800/30 flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">সদস্যের নাম ও সিরিয়াল</span>
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">স্ট্যাটাস</span>
+                    </div>
+                    <div class="divide-y divide-slate-100 dark:divide-darkBorder/50" id="tasksList">`;
+
+            if(data.cleaning.queue.length === 0) html += `<div class="p-8 text-center text-slate-500 text-sm">কোনো ডেটা নেই।</div>`;
+
+            data.cleaning.queue.forEach((q, idx) => {
+                let isNext = idx === 0;
+                html += `
+                <div class="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors ${isNext ? 'bg-indigo-50/50 dark:bg-indigo-500/5' : ''}">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${isNext ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}">${idx + 1}</div>
+                        <div>
+                            <span class="font-bold text-base ${isNext ? 'text-indigo-600 dark:text-indigo-400' : ''}">${q.name}</span>
+                            ${q.seq > 0 ? `<span class="ml-2 bg-emerald-500/20 text-emerald-500 text-[10px] px-2 py-0.5 rounded-full font-bold">#${q.seq} বার করেছে</span>` : ''}
+                            ${isNext ? `<span class="ml-2 text-[9px] bg-indigo-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider font-bold animate-pulse">পালা</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        ${isAdmin ? `
+                            <div class="flex flex-col mr-2">
+                                <button class="task-up-btn text-slate-400 hover:text-indigo-500 p-1" data-id="${q.id}"><i data-lucide="chevron-up" class="w-4 h-4"></i></button>
+                                <button class="task-down-btn text-slate-400 hover:text-indigo-500 p-1" data-id="${q.id}"><i data-lucide="chevron-down" class="w-4 h-4"></i></button>
+                            </div>
+                            <button class="task-done-btn bg-emerald-500 text-white p-2 rounded-xl hover:bg-emerald-600 transition-transform active:scale-95 shadow-md shadow-emerald-500/20" data-id="${q.id}"><i data-lucide="check" class="w-4 h-4"></i></button>
+                            <button class="task-skip-btn bg-rose-500/10 text-rose-500 p-2 rounded-xl hover:bg-rose-500/20 transition-transform active:scale-95" data-id="${q.id}"><i data-lucide="x" class="w-4 h-4"></i></button>
+                        ` : ''}
+                    </div>
+                </div>`;
+            });
+
+            html += `</div></div></div>`;
+            return html;
+        };
+
         const buildExpenseHTML = () => {
             let itemsHtml = bazaarItems.map((item, idx) => `
                 <div class="flex gap-2 mb-2 items-center w-full">
-                    <input type="text" placeholder="আইটেম নাম" class="bazaar-name flex-1 min-w-0 p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none" value="${item.name}" data-idx="${idx}">
-                    <input type="number" placeholder="৳" class="bazaar-amount w-20 flex-shrink-0 p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-center outline-none" value="${item.amount}" data-idx="${idx}">
-                    <button class="remove-bazaar-btn text-rose-500 p-3 bg-rose-50 dark:bg-rose-500/10 rounded-xl flex-shrink-0" data-idx="${idx}"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                    <input type="text" placeholder="আইটেম নাম" class="bazaar-name flex-1 min-w-0 p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none transition-colors focus:border-indigo-500" value="${item.name}" data-idx="${idx}">
+                    <input type="number" placeholder="৳" class="bazaar-amount w-20 flex-shrink-0 p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-center outline-none transition-colors focus:border-indigo-500" value="${item.amount}" data-idx="${idx}">
+                    <button class="remove-bazaar-btn text-rose-500 p-3 bg-rose-50 dark:bg-rose-500/10 rounded-xl flex-shrink-0 transition-colors hover:bg-rose-500/20" data-idx="${idx}"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
                 </div>
             `).join('');
 
@@ -350,14 +409,14 @@
             <div class="max-w-xl mx-auto glass-panel rounded-3xl border border-slate-200 dark:border-darkBorder p-6 shadow-sm mt-2">
                 <h3 class="font-bold text-xl mb-6 flex items-center gap-3"><div class="p-2.5 bg-indigo-500/10 text-indigo-500 rounded-xl"><i data-lucide="plus-circle" class="w-6 h-6"></i></div> নতুন খরচ এন্ট্রি</h3>
                 <div class="space-y-4">
-                    <div><select id="expType" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none"><option value="বাজার">বাজার</option><option value="খালার বিল">খালার বিল</option><option value="বাসা ভাড়া">বাসা ভাড়া</option><option value="কারেন্ট বিল">কারেন্ট বিল</option><option value="ওয়াইফাই বিল">ওয়াইফাই বিল</option><option value="অন্যান্য">অন্যান্য</option></select></div>
-                    <div><input type="date" id="expDate" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none" value="${new Date().toISOString().split('T')[0]}"></div>
+                    <div><select id="expType" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none transition-colors focus:border-indigo-500"><option value="বাজার">বাজার</option><option value="খালার বিল">খালার বিল</option><option value="বাসা ভাড়া">বাসা ভাড়া</option><option value="কারেন্ট বিল">কারেন্ট বিল</option><option value="ওয়াইফাই বিল">ওয়াইফাই বিল</option><option value="অন্যান্য">অন্যান্য</option></select></div>
+                    <div><input type="date" id="expDate" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none transition-colors focus:border-indigo-500" value="${new Date().toISOString().split('T')[0]}"></div>
                     <div id="bazaarSection" class="space-y-4 pt-2 border-t dark:border-slate-700/50">
-                        <select id="expShopper" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none"><option value="">-- বাজারকারীর নাম --</option>${membersOptions}</select>
-                        <div><div id="bazaarItemsContainer">${itemsHtml}</div><button id="addBazaarItemBtn" class="w-full mt-2 py-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-500 flex justify-center items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> আরও আইটেম</button></div>
+                        <select id="expShopper" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none transition-colors focus:border-indigo-500"><option value="">-- বাজারকারীর নাম --</option>${membersOptions}</select>
+                        <div><div id="bazaarItemsContainer">${itemsHtml}</div><button id="addBazaarItemBtn" class="w-full mt-2 py-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-500 flex justify-center items-center gap-2 hover:bg-slate-800/50 transition-colors"><i data-lucide="plus" class="w-4 h-4"></i> আরও আইটেম</button></div>
                     </div>
                     <div id="otherSection" class="hidden pt-2 border-t dark:border-slate-700/50">
-                        <input type="number" id="expTotal" placeholder="মোট টাকার পরিমাণ?" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none">
+                        <input type="number" id="expTotal" placeholder="মোট টাকার পরিমাণ?" class="w-full p-3 rounded-xl border dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none transition-colors focus:border-indigo-500">
                     </div>
                     <button id="submitExpBtn" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3.5 rounded-xl text-sm active:scale-95 transition-all mt-4 shadow-lg shadow-indigo-500/30">খরচ সেভ করুন</button>
                 </div>
@@ -386,25 +445,30 @@
                     </div>
                     ${e.items && e.items.length > 0 ? `<div class="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl mt-3 space-y-1.5 border dark:border-slate-700/50">${e.items.map(i=>`<div class="flex justify-between text-[11px]"><span class="text-slate-400">${i.name}</span><span class="font-bold">৳${i.amount}</span></div>`).join('')}</div>` : ''}
                     <div class="flex gap-2 mt-3 pl-11">
-                        ${isAdmin && e.status === 'pending' ? `<button class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold approve-exp-btn" data-id="${e.id}">অ্যাপ্রুভ</button>` : ''}
+                        ${isAdmin && e.status === 'pending' ? `<button class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold approve-exp-btn transition-transform active:scale-95" data-id="${e.id}">অ্যাপ্রুভ</button>` : ''}
                     </div>
-                    ${isAdmin ? `<button class="text-rose-500 absolute top-4 right-4 hover:bg-rose-500/20 p-1.5 rounded-lg del-exp-btn" data-id="${e.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
+                    ${isAdmin ? `<button class="text-rose-500 absolute top-4 right-4 hover:bg-rose-500/20 p-1.5 rounded-lg del-exp-btn transition-colors" data-id="${e.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
                 </div>
             `).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো খরচের রেকর্ড নেই</div>';
 
-            const depositLogs = data.logs.filter(l => l.action.includes('জমা') || l.action.includes('মাইনাস') || l.action.includes('হিসাব') || l.action.includes('সদস্য') || l.action.includes('রিসেট'));
+            const depositLogs = data.logs.filter(l => l.action.includes('জমা') || l.action.includes('মাইনাস') || l.action.includes('হিসাব') || l.action.includes('সদস্য') || l.action.includes('রিসেট') || l.action.includes('পরিষ্কার'));
             let depositHtml = depositLogs.map(l => {
                 let amountHtml = '';
                 const amtMatch = l.details.match(/৳(\d+)/);
                 if(amtMatch && (l.action.includes('জমা') || l.action.includes('মাইনাস'))) {
-                    amountHtml = `<div class="text-right mt-1"><span class="text-base font-bold block ${l.action.includes('মাইনাস') ? 'text-rose-500' : 'text-emerald-500'}">৳${amtMatch[1]}</span></div>`;
+                    amountHtml = `<div class="text-right mt-1"><span class="text-xl font-bold block ${l.action.includes('মাইনাস') ? 'text-rose-500' : 'text-emerald-500'}">৳${amtMatch[1]}</span></div>`;
                 }
+
+                let iconType = 'piggy-bank';
+                let iconColor = 'text-indigo-500 bg-indigo-500/10';
+                if(l.action.includes('পরিষ্কার')) { iconType = 'sparkles'; iconColor = 'text-amber-500 bg-amber-500/10'; }
+                if(l.action.includes('রিসেট')) { iconType = 'alert-triangle'; iconColor = 'text-rose-500 bg-rose-500/10'; }
 
                 return `
                 <div class="log-item p-4 border-b border-slate-100 dark:border-darkBorder/50 relative hover:bg-slate-800/30 transition-colors" data-search="${l.action.toLowerCase()} ${l.details.toLowerCase()} ${l.log_id?.toLowerCase() || ''}">
                     <div class="flex justify-between items-start pr-8">
                         <div class="flex gap-3">
-                            <div class="p-2 rounded-xl h-fit bg-indigo-500/10 text-indigo-500"><i data-lucide="piggy-bank" class="w-5 h-5"></i></div>
+                            <div class="p-2 rounded-xl h-fit ${iconColor}"><i data-lucide="${iconType}" class="w-5 h-5"></i></div>
                             <div>
                                 <span class="font-bold text-sm text-slate-200">${l.action}</span>
                                 <span class="text-[9px] text-slate-500 ml-1 bg-slate-800 px-1 rounded">#${l.log_id || l.id.substring(l.id.length-5)}</span>
@@ -414,15 +478,15 @@
                         </div>
                         ${amountHtml}
                     </div>
-                    ${isAdmin ? `<button class="delete-log-btn text-rose-500 absolute top-4 right-4 hover:bg-rose-500/20 p-1.5 rounded-lg" data-id="${l.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
+                    ${isAdmin ? `<button class="delete-log-btn text-rose-500 absolute top-4 right-4 hover:bg-rose-500/20 p-1.5 rounded-lg transition-colors" data-id="${l.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
                 </div>`;
-            }).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো জমার হিস্ট্রি নেই</div>';
+            }).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো অ্যাক্টিভিটি হিস্ট্রি নেই</div>';
 
             return `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="bg-gradient-to-br from-indigo-500 to-blue-600 p-5 rounded-3xl shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden"><i data-lucide="wallet" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-indigo-100 mb-1">মোট ফান্ড কালেকশন</span><h3 class="text-3xl font-bold relative z-10">৳${totalFund}</h3></div>
-                <div class="bg-gradient-to-br from-rose-500 to-orange-500 p-5 rounded-3xl shadow-xl shadow-rose-500/20 text-white relative overflow-hidden"><i data-lucide="trending-down" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-rose-100 mb-1">মোট খরচ (Approved)</span><h3 class="text-3xl font-bold relative z-10">৳${totalSpent}</h3></div>
-                <div class="bg-gradient-to-br from-emerald-500 to-teal-500 p-5 rounded-3xl shadow-xl shadow-emerald-500/20 text-white relative overflow-hidden"><i data-lucide="piggy-bank" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-emerald-100 mb-1">বর্তমান ব্যালেন্স</span><h3 class="text-3xl font-bold relative z-10">৳${remaining}</h3></div>
+                <div class="bg-gradient-to-br from-indigo-500 to-blue-600 p-5 rounded-3xl shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden transition-transform hover:-translate-y-1 duration-300"><i data-lucide="wallet" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-indigo-100 mb-1">মোট ফান্ড কালেকশন</span><h3 class="text-3xl font-bold relative z-10">৳${totalFund}</h3></div>
+                <div class="bg-gradient-to-br from-rose-500 to-orange-500 p-5 rounded-3xl shadow-xl shadow-rose-500/20 text-white relative overflow-hidden transition-transform hover:-translate-y-1 duration-300"><i data-lucide="trending-down" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-rose-100 mb-1">মোট খরচ (Approved)</span><h3 class="text-3xl font-bold relative z-10">৳${totalSpent}</h3></div>
+                <div class="bg-gradient-to-br from-emerald-500 to-teal-500 p-5 rounded-3xl shadow-xl shadow-emerald-500/20 text-white relative overflow-hidden transition-transform hover:-translate-y-1 duration-300"><i data-lucide="piggy-bank" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-emerald-100 mb-1">বর্তমান ব্যালেন্স</span><h3 class="text-3xl font-bold relative z-10">৳${remaining}</h3></div>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
@@ -431,7 +495,7 @@
                         <h3 class="font-bold text-base flex items-center gap-2 shrink-0"><i data-lucide="shopping-cart" class="w-4 h-4 text-orange-500"></i> খরচের হিস্টোরি</h3>
                         <div class="relative w-full max-w-[150px]">
                             <i data-lucide="search" class="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400"></i>
-                            <input type="text" id="expSearch" placeholder="খাত বা নাম..." class="w-full pl-8 pr-2 py-1.5 text-[11px] bg-slate-800 border border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-white">
+                            <input type="text" id="expSearch" placeholder="খাত বা নাম..." class="w-full pl-8 pr-2 py-1.5 text-[11px] bg-slate-800 border border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-white transition-colors">
                         </div>
                     </div>
                     <div class="overflow-y-auto hide-scrollbar flex-1" id="expenseLogContainer">${expenseList}</div>
@@ -439,17 +503,17 @@
                 
                 <div class="glass-panel rounded-3xl border border-slate-200 dark:border-darkBorder overflow-hidden flex flex-col h-[500px]">
                     <div class="p-4 border-b border-slate-200 dark:border-darkBorder bg-slate-50/50 dark:bg-slate-800/30 flex justify-between items-center gap-2">
-                        <h3 class="font-bold text-base flex items-center gap-2 shrink-0"><i data-lucide="wallet" class="w-4 h-4 text-emerald-500"></i> জমার হিস্ট্রি</h3>
+                        <h3 class="font-bold text-base flex items-center gap-2 shrink-0"><i data-lucide="activity" class="w-4 h-4 text-emerald-500"></i> অ্যাক্টিভিটি হিস্ট্রি</h3>
                         <div class="relative w-full max-w-[150px]">
                             <i data-lucide="search" class="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400"></i>
-                            <input type="text" id="logSearch" placeholder="নাম বা ID..." class="w-full pl-8 pr-2 py-1.5 text-[11px] bg-slate-800 border border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-white">
+                            <input type="text" id="logSearch" placeholder="নাম বা ID..." class="w-full pl-8 pr-2 py-1.5 text-[11px] bg-slate-800 border border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-white transition-colors">
                         </div>
                     </div>
                     <div class="overflow-y-auto hide-scrollbar flex-1" id="depositLogContainer">${depositHtml}</div>
                 </div>
             </div>
             
-            ${isAdmin ? `<button id="resetAllBtn" class="w-full mt-4 py-4 bg-rose-500/10 text-rose-500 font-bold rounded-2xl border border-rose-500/30 hover:bg-rose-500/20 transition-colors flex items-center justify-center gap-2"><i data-lucide="alert-triangle" class="w-5 h-5"></i> সম্পূর্ণ হিসাব রিসেট করুন (নতুন মাস)</button>` : ''}
+            ${isAdmin ? `<button id="resetAllBtn" class="w-full mt-4 py-4 bg-rose-500/10 text-rose-500 font-bold rounded-2xl border border-rose-500/30 hover:bg-rose-500/20 transition-colors flex items-center justify-center gap-2 active:scale-95"><i data-lucide="alert-triangle" class="w-5 h-5"></i> সম্পূর্ণ হিসাব রিসেট করুন (নতুন মাস)</button>` : ''}
             `;
         };
 
@@ -492,6 +556,67 @@
                     const msg = `🔔 <b>নতুন খরচ যুক্ত</b>\n📋 খাত: ${type}\n💰 পরিমাণ: ৳${total}\n${shopper ? `👤 মারফত: ${shopper}\n` : ''}🔑 ID: #${expId.substring(expId.length-5)}`;
                     if (!isAdmin) { await sendTelegramMsg(msg, expId); } else { await sendTelegramMsg(msg + '\n✅ (Admin Auto-Approved)'); }
                     await logActivity('নতুন খরচ যুক্ত', `${type} খাতে ৳${total} এন্ট্রি হয়েছে।`, expId);
+                });
+            }
+
+            if(activeTab === 'tasks') {
+                const saveCleaningData = async () => {
+                    if (supabase) await supabase.from('cleaning_tasks').update({ queue: data.cleaning.queue, current_seq: data.cleaning.current_seq }).eq('id', '1');
+                    render();
+                };
+
+                document.querySelectorAll('.task-up-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    const idx = data.cleaning.queue.findIndex(q => String(q.id) === String(id));
+                    if (idx > 0) {
+                        [data.cleaning.queue[idx-1], data.cleaning.queue[idx]] = [data.cleaning.queue[idx], data.cleaning.queue[idx-1]];
+                        await saveCleaningData();
+                    }
+                }));
+
+                document.querySelectorAll('.task-down-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    const idx = data.cleaning.queue.findIndex(q => String(q.id) === String(id));
+                    if (idx !== -1 && idx < data.cleaning.queue.length - 1) {
+                        [data.cleaning.queue[idx], data.cleaning.queue[idx+1]] = [data.cleaning.queue[idx+1], data.cleaning.queue[idx]];
+                        await saveCleaningData();
+                    }
+                }));
+
+                document.querySelectorAll('.task-done-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    const idx = data.cleaning.queue.findIndex(q => String(q.id) === String(id));
+                    if (idx !== -1) {
+                        const item = data.cleaning.queue.splice(idx, 1)[0];
+                        data.cleaning.current_seq = (data.cleaning.current_seq || 0) + 1;
+                        item.seq = data.cleaning.current_seq;
+                        data.cleaning.queue.push(item);
+                        await saveCleaningData();
+                        showToast('কাজ সম্পন্ন হয়েছে!', 'success');
+                        await logActivity('বাথরুম পরিষ্কার', `${item.name} বাথরুম পরিষ্কার করেছে। সিরিয়াল: #${item.seq}`);
+                    }
+                }));
+
+                document.querySelectorAll('.task-skip-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    const idx = data.cleaning.queue.findIndex(q => String(q.id) === String(id));
+                    if (idx !== -1) {
+                        const item = data.cleaning.queue.splice(idx, 1)[0];
+                        data.cleaning.queue.push(item);
+                        await saveCleaningData();
+                        showToast('পালা পরিবর্তন করা হয়েছে।', 'error');
+                        await logActivity('পালা স্কিপ', `${item.name} বাথরুম পরিষ্কার করেনি, পালা পরিবর্তন করা হয়েছে।`);
+                    }
+                }));
+
+                document.getElementById('resetTasksBtn')?.addEventListener('click', () => {
+                    if(confirm('আপনি কি নিশ্চিত যে সম্পূর্ণ ক্লিনিং রুটিনের হিস্ট্রি ও সিরিয়াল জিরো (0) করতে চান?')) {
+                        data.cleaning.current_seq = 0;
+                        data.cleaning.queue.forEach(q => q.seq = 0);
+                        saveCleaningData();
+                        showToast('রিসেট সম্পন্ন হয়েছে!', 'success');
+                        logActivity('ক্লিনিং রিসেট', 'বাথরুম পরিষ্কারের সমস্ত সিরিয়াল ও হিস্ট্রি এডমিন দ্বারা জিরো (0) করা হয়েছে।');
+                    }
                 });
             }
 
@@ -539,7 +664,7 @@
                     showModal(`
                         <h3 class="font-bold text-rose-500 mb-3 text-center">হিস্ট্রি মুছুন</h3>
                         <input type="password" id="delLogPass" class="w-full p-3 bg-slate-800 border border-slate-700 text-center text-sm rounded-xl outline-none" placeholder="এডমিন পাসওয়ার্ড">
-                        <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="confirmDelLog" class="flex-1 py-3 text-sm bg-rose-600 text-white rounded-xl font-bold">মুছুন</button></div>
+                        <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="confirmDelLog" class="flex-1 py-3 text-sm bg-rose-600 text-white rounded-xl font-bold shadow-md shadow-rose-500/20">মুছুন</button></div>
                     `, async () => {
                         if(document.getElementById('delLogPass').value === CONFIG.ADMIN_PASS) {
                             if(supabase) await supabase.from('activity_logs').delete().eq('id', idToDel);
@@ -642,7 +767,14 @@
                     const newId = generateUniqueId();
                     const newM = { id: newId, name, paid: 0, borrowed: 0, absentDays: 0 };
                     if (supabase) { const { error } = await supabase.from('members').insert([newM]); if (error) return showToast('Error', 'error'); }
-                    data.members.push(newM); hideModal(); render(); showToast('ডাটাবেজে নতুন সদস্য যোগ হয়েছে!');
+                    data.members.push(newM);
+                    
+                    if(data.cleaning && data.cleaning.queue) {
+                        data.cleaning.queue.push({ id: newId, name, seq: 0 });
+                        if(supabase) await supabase.from('cleaning_tasks').update({queue: data.cleaning.queue}).eq('id', '1');
+                    }
+                    
+                    hideModal(); render(); showToast('ডাটাবেজে নতুন সদস্য যোগ হয়েছে!');
                     await logActivity('নতুন সদস্য', `সিস্টেমে ${name} কে নতুন সদস্য হিসেবে যুক্ত করা হয়েছে।`);
                 });
             });
@@ -653,14 +785,22 @@
             mc.innerHTML = `<div class="bg-darkCard w-full max-w-sm rounded-3xl p-6 border border-darkBorder fade-in shadow-2xl">${content}</div>`;
             mc.classList.remove('hidden');
             document.getElementById('closeModal')?.addEventListener('click', hideModal);
+            
             if(onSave) {
-                const actionBtns = ['saveRoutine', 'saveMember', 'checkPass', 'confirmDelLog', 'btnNextReset', 'btnFinalReset', 'saveNewMember'];
-                actionBtns.forEach(id => {
-                    document.getElementById(id)?.addEventListener('click', onSave);
+                const actionBtnIds = ['saveRoutine', 'saveMember', 'checkPass', 'confirmDelLog', 'btnNextReset', 'btnFinalReset'];
+                let attached = false;
+                actionBtnIds.forEach(id => {
+                    const btn = document.getElementById(id);
+                    if(btn) { btn.addEventListener('click', onSave); attached = true; }
                 });
+                if(!attached) {
+                    const lastBtn = mc.querySelector('button:last-child');
+                    if(lastBtn && lastBtn.id !== 'closeModal') lastBtn.addEventListener('click', onSave);
+                }
             }
             lucide.createIcons();
         };
+        
         const hideModal = () => document.getElementById('modalContainer').classList.add('hidden');
 
         document.getElementById('themeToggle').addEventListener('click', () => { isDark = !isDark; document.documentElement.classList.toggle('dark', isDark); });
@@ -668,9 +808,9 @@
         document.getElementById('adminBtn').addEventListener('click', () => {
             if(isAdmin) { isAdmin = false; localStorage.removeItem('mess_admin_token'); document.getElementById('adminBtnText').innerText = 'এডমিন'; render(); showToast('লগআউট সফল!'); return; }
             showModal(`
-                <div class="text-center mb-5"><div class="w-14 h-14 bg-indigo-500/10 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3"><i data-lucide="shield-check" class="w-7 h-7"></i></div><h3 class="font-bold text-xl">এডমিন লগইন</h3></div>
-                <input type="password" id="adminPassInput" class="w-full p-3 rounded-xl bg-slate-800 border border-slate-700 text-sm text-center tracking-widest font-mono outline-none" placeholder="পাসওয়ার্ড দিন">
-                <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="checkPass" class="flex-1 py-3 text-sm bg-indigo-600 text-white rounded-xl font-bold">লগইন</button></div>
+                <div class="text-center mb-5"><div class="w-14 h-14 bg-indigo-500/10 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3 scale-in"><i data-lucide="shield-check" class="w-7 h-7"></i></div><h3 class="font-bold text-xl">এডমিন লগইন</h3></div>
+                <input type="password" id="adminPassInput" class="w-full p-3 rounded-xl bg-slate-800 border border-slate-700 text-sm text-center tracking-widest font-mono outline-none focus:border-indigo-500 transition-colors" placeholder="পাসওয়ার্ড দিন">
+                <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="checkPass" class="flex-1 py-3 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-md">লগইন</button></div>
             `, () => {
                 const inputPass = document.getElementById('adminPassInput').value;
                 if(inputPass === CONFIG.ADMIN_PASS) { isAdmin = true; localStorage.setItem('mess_admin_token', inputPass); document.getElementById('adminBtnText').innerText = 'লগআউট'; hideModal(); render(); showToast('লগইন সফল!'); } 
