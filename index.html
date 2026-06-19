@@ -27,6 +27,8 @@
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
         .toast-enter { animation: toastIn 0.3s ease-out forwards; }
         @keyframes toastIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
     </style>
@@ -153,6 +155,10 @@
         const logActivity = async (action, details, specificId = null) => {
             const logId = specificId || generateRefId();
             const timestamp = new Date().toLocaleString('bn-BD');
+            
+            const isDuplicate = data.logs.some(l => l.action === action && l.details === details && (Date.now() - parseInt(l.id.split('-')[0])) < 2000);
+            if(isDuplicate) return logId;
+
             const newLog = { id: generateUniqueId(), log_id: logId, action, details, timestamp };
             data.logs.unshift(newLog);
             if (supabase) await supabase.from('activity_logs').insert([newLog]);
@@ -439,7 +445,7 @@
                             </div>
                         </div>
                         <div class="text-right">
-                            <span class="text-base font-bold block">৳${e.total}</span>
+                            <span class="text-xl font-bold block ${e.status === 'approved' ? 'text-emerald-500' : 'text-amber-500'}">৳${e.total}</span>
                             <span class="text-[9px] px-2 py-0.5 rounded-full font-bold ${e.status === 'approved' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'}">${e.status === 'approved' ? 'Approved' : 'Pending'}</span>
                         </div>
                     </div>
@@ -447,7 +453,7 @@
                     <div class="flex gap-2 mt-3 pl-11">
                         ${isAdmin && e.status === 'pending' ? `<button class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold approve-exp-btn transition-transform active:scale-95" data-id="${e.id}">অ্যাপ্রুভ</button>` : ''}
                     </div>
-                    ${isAdmin ? `<button class="text-rose-500 absolute top-4 right-4 hover:bg-rose-500/20 p-1.5 rounded-lg del-exp-btn transition-colors" data-id="${e.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
+                    ${isAdmin ? `<button class="text-rose-500 absolute top-4 right-4 hover:bg-rose-500/20 p-1.5 rounded-lg del-exp-btn transition-colors" data-id="${e.id}"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : ''}
                 </div>
             `).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো খরচের রেকর্ড নেই</div>';
 
@@ -480,7 +486,7 @@
                     </div>
                     ${isAdmin ? `<button class="delete-log-btn text-rose-500 absolute top-4 right-4 hover:bg-rose-500/20 p-1.5 rounded-lg transition-colors" data-id="${l.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
                 </div>`;
-            }).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো অ্যাক্টিভিটি হিস্ট্রি নেই</div>';
+            }).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো জমার হিস্ট্রি নেই</div>';
 
             return `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -503,7 +509,7 @@
                 
                 <div class="glass-panel rounded-3xl border border-slate-200 dark:border-darkBorder overflow-hidden flex flex-col h-[500px]">
                     <div class="p-4 border-b border-slate-200 dark:border-darkBorder bg-slate-50/50 dark:bg-slate-800/30 flex justify-between items-center gap-2">
-                        <h3 class="font-bold text-base flex items-center gap-2 shrink-0"><i data-lucide="activity" class="w-4 h-4 text-emerald-500"></i> অ্যাক্টিভিটি হিস্ট্রি</h3>
+                        <h3 class="font-bold text-base flex items-center gap-2 shrink-0"><i data-lucide="wallet" class="w-4 h-4 text-emerald-500"></i> জমার হিস্ট্রি</h3>
                         <div class="relative w-full max-w-[150px]">
                             <i data-lucide="search" class="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400"></i>
                             <input type="text" id="logSearch" placeholder="নাম বা ID..." class="w-full pl-8 pr-2 py-1.5 text-[11px] bg-slate-800 border border-slate-700 rounded-lg outline-none focus:border-indigo-500 text-white transition-colors">
@@ -610,13 +616,17 @@
                 }));
 
                 document.getElementById('resetTasksBtn')?.addEventListener('click', () => {
-                    if(confirm('আপনি কি নিশ্চিত যে সম্পূর্ণ ক্লিনিং রুটিনের হিস্ট্রি ও সিরিয়াল জিরো (0) করতে চান?')) {
+                    showModal(`
+                        <h3 class="font-bold text-rose-500 mb-3 text-center">রিসেট কনফার্মেশন</h3>
+                        <p class="text-xs text-slate-400 mb-4 text-center">আপনি কি নিশ্চিত যে সম্পূর্ণ ক্লিনিং রুটিনের হিস্ট্রি ও সিরিয়াল জিরো (0) করতে চান?</p>
+                        <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="confirmTaskReset" class="flex-1 py-3 text-sm bg-rose-600 text-white rounded-xl font-bold shadow-md shadow-rose-500/20 active:scale-95 transition-all">রিসেট</button></div>
+                    `, () => {
                         data.cleaning.current_seq = 0;
                         data.cleaning.queue.forEach(q => q.seq = 0);
-                        saveCleaningData();
-                        showToast('রিসেট সম্পন্ন হয়েছে!', 'success');
+                        if (supabase) supabase.from('cleaning_tasks').update({ queue: data.cleaning.queue, current_seq: data.cleaning.current_seq }).eq('id', '1');
+                        hideModal(); render(); showToast('রিসেট সম্পন্ন হয়েছে!', 'success');
                         logActivity('ক্লিনিং রিসেট', 'বাথরুম পরিষ্কারের সমস্ত সিরিয়াল ও হিস্ট্রি এডমিন দ্বারা জিরো (0) করা হয়েছে।');
-                    }
+                    });
                 });
             }
 
@@ -644,27 +654,38 @@
                 }
 
                 document.querySelectorAll('.approve-exp-btn').forEach(btn => btn.addEventListener('click', async (e) => {
-                    const id = e.target.dataset.id;
+                    const id = e.currentTarget.dataset.id;
                     if (supabase) await supabase.from('expenses').update({ status: 'approved' }).eq('id', id);
                     const item = data.expenses.find(x => x.id === id);
                     if(item) { item.status = 'approved'; render(); showToast('অ্যাপ্রুভ করা হয়েছে!'); await logActivity('খরচ অ্যাপ্রুভাল', `${item.type} খাতের ৳${item.total} এন্ট্রি অ্যাপ্রুভ করা হয়েছে।`, id); }
                 }));
 
-                document.querySelectorAll('.del-exp-btn').forEach(btn => btn.addEventListener('click', async (e) => {
-                    if(confirm('এটি মুছে ফেলতে চান?')) {
-                        const id = e.target.dataset.id; const item = data.expenses.find(x => x.id === id);
-                        if (supabase) await supabase.from('expenses').delete().eq('id', id);
-                        data.expenses = data.expenses.filter(x => x.id !== id); render(); showToast('মুছে ফেলা হয়েছে!', 'error');
-                        if(item) await logActivity('খরচ ডিলিট', `${item.type} খাতের ৳${item.total} এন্ট্রি মুছে ফেলা হয়েছে।`, id);
-                    }
+                document.querySelectorAll('.del-exp-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                    const idToDel = e.currentTarget.dataset.id; 
+                    const item = data.expenses.find(x => x.id === idToDel);
+                    showModal(`
+                        <h3 class="font-bold text-rose-500 mb-3 text-center">খরচ মুছুন</h3>
+                        <input type="password" id="delExpPass" class="w-full p-3 bg-slate-800 border border-slate-700 text-center text-sm rounded-xl outline-none focus:border-rose-500 transition-colors" placeholder="এডমিন পাসওয়ার্ড">
+                        <div class="flex gap-3 mt-6">
+                            <button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button>
+                            <button id="confirmDelExp" class="flex-1 py-3 text-sm bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-md shadow-rose-500/20 transition-all active:scale-95">মুছুন</button>
+                        </div>
+                    `, async () => {
+                        if(document.getElementById('delExpPass').value === CONFIG.ADMIN_PASS) {
+                            if (supabase) await supabase.from('expenses').delete().eq('id', idToDel);
+                            data.expenses = data.expenses.filter(x => x.id !== idToDel);
+                            hideModal(); render(); showToast('খরচ মুছে ফেলা হয়েছে!', 'success');
+                            if(item) await logActivity('খরচ ডিলিট', `${item.type} খাতের ৳${item.total} এন্ট্রি মুছে ফেলা হয়েছে।`);
+                        } else showToast('ভুল পাসওয়ার্ড!', 'error');
+                    });
                 }));
 
                 document.querySelectorAll('.delete-log-btn').forEach(btn => btn.addEventListener('click', (e) => {
                     const idToDel = e.currentTarget.dataset.id;
                     showModal(`
                         <h3 class="font-bold text-rose-500 mb-3 text-center">হিস্ট্রি মুছুন</h3>
-                        <input type="password" id="delLogPass" class="w-full p-3 bg-slate-800 border border-slate-700 text-center text-sm rounded-xl outline-none" placeholder="এডমিন পাসওয়ার্ড">
-                        <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="confirmDelLog" class="flex-1 py-3 text-sm bg-rose-600 text-white rounded-xl font-bold shadow-md shadow-rose-500/20">মুছুন</button></div>
+                        <input type="password" id="delLogPass" class="w-full p-3 bg-slate-800 border border-slate-700 text-center text-sm rounded-xl outline-none focus:border-rose-500 transition-colors" placeholder="এডমিন পাসওয়ার্ড">
+                        <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="confirmDelLog" class="flex-1 py-3 text-sm bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-md shadow-rose-500/20 transition-all active:scale-95">মুছুন</button></div>
                     `, async () => {
                         if(document.getElementById('delLogPass').value === CONFIG.ADMIN_PASS) {
                             if(supabase) await supabase.from('activity_logs').delete().eq('id', idToDel);
@@ -678,8 +699,8 @@
                     showModal(`
                         <h3 class="font-bold text-rose-500 text-lg mb-4 border-b border-slate-700 pb-3 text-center">সতর্কতা: রিসেট করুন (ধাপ ১/২)</h3>
                         <p class="text-xs text-slate-400 mb-4 text-center">আপনি কি নিশ্চিত? সবার টাকা এবং খরচের হিসাব ডিলিট হয়ে যাবে। এডমিন পাসওয়ার্ড দিন:</p>
-                        <input type="password" id="resetPass1" class="w-full p-3 bg-slate-800 border border-slate-700 text-center text-sm rounded-xl outline-none tracking-widest font-mono" placeholder="এডমিন পাসওয়ার্ড">
-                        <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="btnNextReset" class="flex-1 py-3 text-sm bg-rose-600 text-white rounded-xl font-bold">পরবর্তী ধাপ</button></div>
+                        <input type="password" id="resetPass1" class="w-full p-3 bg-slate-800 border border-slate-700 text-center text-sm rounded-xl outline-none tracking-widest font-mono focus:border-rose-500 transition-colors" placeholder="এডমিন পাসওয়ার্ড">
+                        <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="btnNextReset" class="flex-1 py-3 text-sm bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition-all active:scale-95">পরবর্তী ধাপ</button></div>
                     `, () => {
                         if(document.getElementById('resetPass1').value === CONFIG.ADMIN_PASS) {
                             hideModal();
@@ -687,8 +708,8 @@
                                 showModal(`
                                     <h3 class="font-bold text-rose-500 text-lg mb-4 border-b border-slate-700 pb-3 text-center">চূড়ান্ত কনফার্মেশন (ধাপ ২/২)</h3>
                                     <p class="text-xs text-rose-400 mb-4 text-center">এই কাজটি আর ফিরিয়ে আনা যাবে না (Undo করা যাবে না)। নিশ্চিত করতে আবার পাসওয়ার্ড দিন:</p>
-                                    <input type="password" id="resetPass2" class="w-full p-3 bg-slate-800 border border-rose-500/50 text-center text-sm rounded-xl outline-none tracking-widest font-mono focus:border-rose-500" placeholder="কনফার্ম পাসওয়ার্ড">
-                                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="btnFinalReset" class="flex-1 py-3 text-sm bg-rose-600 text-white rounded-xl font-bold shadow-lg shadow-rose-500/30">সব মুছে ফেলুন</button></div>
+                                    <input type="password" id="resetPass2" class="w-full p-3 bg-slate-800 border border-rose-500/50 text-center text-sm rounded-xl outline-none tracking-widest font-mono focus:border-rose-500 transition-colors" placeholder="কনফার্ম পাসওয়ার্ড">
+                                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="btnFinalReset" class="flex-1 py-3 text-sm bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-lg shadow-rose-500/30 transition-all active:scale-95">সব মুছে ফেলুন</button></div>
                                 `, async () => {
                                     if(document.getElementById('resetPass2').value === CONFIG.ADMIN_PASS) {
                                         if(supabase) {
@@ -715,11 +736,11 @@
                 showModal(`
                     <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-3">রুটিন আপডেট: <span class="text-indigo-500">${r.day}</span></h3>
                     <div class="space-y-4">
-                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">সকাল</label><input type="text" id="er-b" value="${r.b || ''}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
-                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">দুপুর</label><input type="text" id="er-l" value="${r.l || ''}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
-                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">রাত</label><input type="text" id="er-d" value="${r.d || ''}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">সকাল</label><input type="text" id="er-b" value="${r.b || ''}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none focus:border-indigo-500 transition-colors"></div>
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">দুপুর</label><input type="text" id="er-l" value="${r.l || ''}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none focus:border-indigo-500 transition-colors"></div>
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">রাত</label><input type="text" id="er-d" value="${r.d || ''}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none focus:border-indigo-500 transition-colors"></div>
                     </div>
-                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="saveRoutine" class="flex-1 py-3 text-sm bg-indigo-600 text-white rounded-xl font-bold">সেভ</button></div>
+                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="saveRoutine" class="flex-1 py-3 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all active:scale-95 shadow-md">সেভ</button></div>
                 `, async () => {
                     const updated = { b: document.getElementById('er-b').value, l: document.getElementById('er-l').value, d: document.getElementById('er-d').value };
                     if (supabase) { const { error } = await supabase.from('routine').update(updated).eq('id', r.id); if (error) return showToast('Supabase Error', 'error'); }
@@ -734,11 +755,11 @@
                 showModal(`
                     <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-3"><span class="text-indigo-500">${m.name}</span> এর হিসাব</h3>
                     <div class="space-y-4">
-                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">মোট জমা (৳)</label><input type="number" id="em-p" value="${m.paid || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
-                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">মাইনাস/ধার (৳)</label><input type="number" id="em-b" value="${m.borrowed || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
-                        <div><label class="text-xs font-bold text-slate-500 mb-1 flex justify-between"><span>বন্ধ থাকা দিন</span> <span class="text-[10px] bg-indigo-100 text-indigo-600 px-2 rounded">রিবেটের জন্য</span></label><input type="number" id="em-a" value="${m.absentDays || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">মোট জমা (৳)</label><input type="number" id="em-p" value="${m.paid || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none focus:border-indigo-500 transition-colors"></div>
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 block">মাইনাস/ধার (৳)</label><input type="number" id="em-b" value="${m.borrowed || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none focus:border-indigo-500 transition-colors"></div>
+                        <div><label class="text-xs font-bold text-slate-500 mb-1 flex justify-between"><span>বন্ধ থাকা দিন</span> <span class="text-[10px] bg-indigo-100 text-indigo-600 px-2 rounded">রিবেটের জন্য</span></label><input type="number" id="em-a" value="${m.absentDays || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none focus:border-indigo-500 transition-colors"></div>
                     </div>
-                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="saveMember" class="flex-1 py-3 text-sm bg-indigo-600 text-white rounded-xl font-bold">আপডেট করুন</button></div>
+                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="saveMember" class="flex-1 py-3 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all active:scale-95 shadow-md">আপডেট করুন</button></div>
                 `, async () => {
                     const newPaid = Number(document.getElementById('em-p').value);
                     const oldPaid = m.paid || 0;
@@ -759,8 +780,8 @@
             document.getElementById('addMemberBtn')?.addEventListener('click', () => {
                 showModal(`
                     <h3 class="font-bold text-lg mb-4 border-b border-slate-700 pb-3">নতুন সদস্য যোগ করুন</h3>
-                    <div><label class="text-xs font-bold text-slate-500 mb-1 block">সদস্যের নাম</label><input type="text" id="new-m-name" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none"></div>
-                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 rounded-xl font-bold">বাতিল</button><button id="saveNewMember" class="flex-1 py-3 text-sm bg-indigo-600 text-white rounded-xl font-bold">যোগ করুন</button></div>
+                    <div><label class="text-xs font-bold text-slate-500 mb-1 block">সদস্যের নাম</label><input type="text" id="new-m-name" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none focus:border-indigo-500 transition-colors"></div>
+                    <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="saveNewMember" class="flex-1 py-3 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all active:scale-95 shadow-md">যোগ করুন</button></div>
                 `, async () => {
                     const name = document.getElementById('new-m-name').value;
                     if(!name) return showToast('নাম ফাঁকা রাখা যাবে না!', 'error');
@@ -787,7 +808,7 @@
             document.getElementById('closeModal')?.addEventListener('click', hideModal);
             
             if(onSave) {
-                const actionBtnIds = ['saveRoutine', 'saveMember', 'checkPass', 'confirmDelLog', 'btnNextReset', 'btnFinalReset'];
+                const actionBtnIds = ['saveRoutine', 'saveMember', 'checkPass', 'confirmDelLog', 'confirmDelExp', 'confirmTaskReset', 'btnNextReset', 'btnFinalReset'];
                 let attached = false;
                 actionBtnIds.forEach(id => {
                     const btn = document.getElementById(id);
@@ -810,7 +831,7 @@
             showModal(`
                 <div class="text-center mb-5"><div class="w-14 h-14 bg-indigo-500/10 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3 scale-in"><i data-lucide="shield-check" class="w-7 h-7"></i></div><h3 class="font-bold text-xl">এডমিন লগইন</h3></div>
                 <input type="password" id="adminPassInput" class="w-full p-3 rounded-xl bg-slate-800 border border-slate-700 text-sm text-center tracking-widest font-mono outline-none focus:border-indigo-500 transition-colors" placeholder="পাসওয়ার্ড দিন">
-                <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="checkPass" class="flex-1 py-3 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-md">লগইন</button></div>
+                <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="checkPass" class="flex-1 py-3 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all active:scale-95 shadow-md">লগইন</button></div>
             `, () => {
                 const inputPass = document.getElementById('adminPassInput').value;
                 if(inputPass === CONFIG.ADMIN_PASS) { isAdmin = true; localStorage.setItem('mess_admin_token', inputPass); document.getElementById('adminBtnText').innerText = 'লগআউট'; hideModal(); render(); showToast('লগইন সফল!'); } 
