@@ -162,7 +162,7 @@
         const logActivity = async (action, details, specificId = null) => {
             const logId = specificId || generateRefId();
             const timestamp = new Date().toLocaleString('bn-BD');
-            
+
             const isDuplicate = data.logs.some(l => l.action === action && l.details === details && (Date.now() - parseInt(l.id.split('-')[0])) < 2000);
             if(isDuplicate) return logId;
 
@@ -221,7 +221,7 @@
                         data.cleaning.queue = data.members.map(m => ({ id: m.id, name: m.name, seq: 0 }));
                         await supabase.from('cleaning_tasks').insert([data.cleaning]);
                     }
-                    
+
                     if (data.members.length > 0 && data.cleaning.queue.length > 0) {
                         const qIds = data.cleaning.queue.map(q => String(q.id));
                         const missing = data.members.filter(m => !qIds.includes(String(m.id)));
@@ -335,7 +335,7 @@
                 let baseFee = (m.custom_fee !== undefined && m.custom_fee !== null && m.custom_fee !== '') ? Number(m.custom_fee) : CONFIG.MONTHLY_FEE;
                 let mealCost = baseFee - rebate;
                 let netBalance = (m.paid || 0) - mealCost - (m.borrowed || 0);
-                
+
                 let badgeColor, badgeText, badgeIcon, textColor;
                 if (netBalance > 0) { badgeColor = 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20'; textColor = 'text-emerald-600 dark:text-emerald-400'; badgeText = 'বাসা থেকে পাবে'; badgeIcon = 'plus-circle'; }
                 else if (netBalance < 0) { badgeColor = 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20'; textColor = 'text-rose-600 dark:text-rose-400'; badgeText = 'বাসায় বাকি'; badgeIcon = 'minus-circle'; }
@@ -580,12 +580,12 @@
                     const autoApprove = isAdmin ? 'approved' : 'pending';
                     const expId = generateUniqueId();
                     const payload = { id: expId, type, date, total, status: autoApprove, items, shopper };
-                    
+
                     if (supabase) await supabase.from('expenses').insert([payload]);
                     data.expenses.unshift(payload);
                     bazaarItems = [{name: '', amount: ''}]; render();
                     showToast(isAdmin ? 'খরচ সরাসরি অ্যাপ্রুভ হয়েছে!' : 'খরচ সেভ হয়েছে, পেন্ডিং আছে।');
-                    
+
                     const msg = `🔔 <b>নতুন খরচ যুক্ত</b>\n📋 খাত: ${type}\n💰 পরিমাণ: ৳${total}\n${shopper ? `👤 মারফত: ${shopper}\n` : ''}🔑 ID: #${expId.substring(expId.length-5)}`;
                     if (!isAdmin) { await sendTelegramMsg(msg, expId); } else { await sendTelegramMsg(msg + '\n✅ (Admin Auto-Approved)'); }
                     await logActivity('নতুন খরচ যুক্ত', `${type} খাতে ৳${total} এন্ট্রি হয়েছে।`, expId);
@@ -668,7 +668,7 @@
                         });
                     });
                 }
-                
+
                 const expSearch = document.getElementById('expSearch');
                 if (expSearch) {
                     expSearch.addEventListener('input', (e) => {
@@ -814,10 +814,10 @@
                         absentDays: Number(document.getElementById('em-a').value),
                         custom_fee: document.getElementById('em-fee').value ? Number(document.getElementById('em-fee').value) : null
                     };
-                    
+
                     if (supabase) { const { error } = await supabase.from('members').update(updated).eq('id', m.id); if (error) return showToast('Supabase Error', 'error'); }
                     Object.assign(m, updated); hideModal(); render(); showToast('হিসাব ডাটাবেজে সেভ হয়েছে!');
-                    
+
                     if (newPaid !== oldPaid) {
                         if (newPaid > oldPaid) await logActivity('টাকা জমা', `${m.name} নতুন করে ৳${newPaid - oldPaid} জমা দিয়েছে। (মোট: ৳${newPaid})`);
                         else if (newPaid < oldPaid) await logActivity('হিসাব মাইনাস', `${m.name} এর জমা থেকে ৳${oldPaid - newPaid} কমানো হয়েছে।`);
@@ -838,7 +838,7 @@
                 document.getElementById('delMemberBtn')?.addEventListener('click', () => {
                     showModal(`
                         <h3 class="font-bold text-rose-500 mb-3 text-center">সদস্য মুছে ফেলুন</h3>
-                        <p class="text-xs text-slate-400 mb-4 text-center">আপনি কি নিশ্চিত যে <b>${m.name}</b> কে মেস থেকে বাদ দিতে চান? এটি আর ফিরিয়ে আনা যাবে না!</p>
+                        <p class="text-xs text-slate-400 mb-4 text-center">আপনি কি নিশ্চিত যে <b>${m.name}</b> কে মেস থেকে বাদ দিতে চান? এটি আর ফিরিয়ে আনা যাবে না (Undo করা যাবে না)!</p>
                         <div class="flex gap-3 mt-6">
                             <button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button>
                             <button id="confirmDelMember" class="flex-1 py-3 text-sm bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-md shadow-rose-500/20 transition-all active:scale-95">মুছুন</button>
@@ -866,12 +866,12 @@
                     const newM = { id: newId, name, paid: 0, borrowed: 0, absentDays: 0, custom_fee: null };
                     if (supabase) { const { error } = await supabase.from('members').insert([newM]); if (error) return showToast('Error', 'error'); }
                     data.members.push(newM);
-                    
+
                     if(data.cleaning && data.cleaning.queue) {
                         data.cleaning.queue.push({ id: newId, name, seq: 0 });
                         if(supabase) await supabase.from('cleaning_tasks').update({queue: data.cleaning.queue}).eq('id', '1');
                     }
-                    
+
                     hideModal(); render(); showToast('ডাটাবেজে নতুন সদস্য যোগ হয়েছে!');
                     await logActivity('নতুন সদস্য', `সিস্টেমে ${name} কে নতুন সদস্য হিসেবে যুক্ত করা হয়েছে।`);
                 });
@@ -883,7 +883,7 @@
             mc.innerHTML = `<div class="bg-darkCard w-full max-w-sm rounded-3xl p-6 border border-darkBorder fade-in shadow-2xl relative my-auto">${content}</div>`;
             mc.classList.remove('hidden');
             document.getElementById('closeModal')?.addEventListener('click', hideModal);
-            
+
             if(onSave) {
                 const actionBtnIds = ['saveRoutine', 'saveMember', 'checkPass', 'confirmDelLog', 'confirmDelExp', 'confirmTaskReset', 'btnNextReset', 'btnFinalReset', 'saveNewMember', 'confirmDelMember'];
                 let attached = false;
@@ -898,7 +898,7 @@
             }
             lucide.createIcons();
         };
-        
+
         const hideModal = () => document.getElementById('modalContainer').classList.add('hidden');
 
         document.getElementById('themeToggle').addEventListener('click', () => { isDark = !isDark; document.documentElement.classList.toggle('dark', isDark); });
