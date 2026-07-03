@@ -506,7 +506,7 @@
                     </div>
                     ${isAdmin ? `<button class="delete-log-btn text-rose-500 absolute top-4 right-4 hover:bg-rose-500/20 p-1.5 rounded-lg transition-colors" data-id="${l.id}"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>` : ''}
                 </div>`;
-            }).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো অ্যাক্টিভিটি হিস্ট্রি নেই</div>';
+            }).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো জমার হিস্ট্রি নেই</div>';
 
             return `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -782,7 +782,7 @@
                 showModal(`
                     <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
                         <h3 class="font-bold text-lg"><span class="text-indigo-500">${m.name}</span> এর হিসাব</h3>
-                        <button id="delMemberBtn" class="text-rose-500 hover:bg-rose-500/10 p-2 rounded-xl transition-colors"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                        <button id="delMemberBtn" class="text-rose-500 hover:bg-rose-500/10 p-2 rounded-xl transition-colors"><i data-lucide="trash-2" class="w-5 h-5 pointer-events-none"></i></button>
                     </div>
                     <div class="space-y-4">
                         <div>
@@ -835,15 +835,22 @@
                     document.getElementById('em-b-total').value = baseB + Number(e.target.value);
                 });
 
-                document.getElementById('delMemberBtn')?.addEventListener('click', async () => {
-                    if(confirm('আপনি কি নিশ্চিত যে এই সদস্যকে মেস থেকে বাদ দিতে চান? এটি আর ফিরিয়ে আনা যাবে না!')) {
+                document.getElementById('delMemberBtn')?.addEventListener('click', () => {
+                    showModal(`
+                        <h3 class="font-bold text-rose-500 mb-3 text-center">সদস্য মুছে ফেলুন</h3>
+                        <p class="text-xs text-slate-400 mb-4 text-center">আপনি কি নিশ্চিত যে <b>${m.name}</b> কে মেস থেকে বাদ দিতে চান? এটি আর ফিরিয়ে আনা যাবে না!</p>
+                        <div class="flex gap-3 mt-6">
+                            <button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button>
+                            <button id="confirmDelMember" class="flex-1 py-3 text-sm bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-md shadow-rose-500/20 transition-all active:scale-95">মুছুন</button>
+                        </div>
+                    `, async () => {
                         if(supabase) await supabase.from('members').delete().eq('id', m.id);
                         data.members = data.members.filter(x => x.id !== m.id);
                         data.cleaning.queue = data.cleaning.queue.filter(x => x.id !== m.id);
                         if(supabase) await supabase.from('cleaning_tasks').update({queue: data.cleaning.queue}).eq('id', '1');
                         hideModal(); render(); showToast('সদস্য মুছে ফেলা হয়েছে!', 'error');
                         logActivity('সদস্য রিমুভ', `${m.name} কে মেস থেকে বাদ দেওয়া হয়েছে।`);
-                    }
+                    });
                 });
             }));
 
@@ -878,7 +885,7 @@
             document.getElementById('closeModal')?.addEventListener('click', hideModal);
             
             if(onSave) {
-                const actionBtnIds = ['saveRoutine', 'saveMember', 'checkPass', 'confirmDelLog', 'confirmDelExp', 'confirmTaskReset', 'btnNextReset', 'btnFinalReset', 'saveNewMember'];
+                const actionBtnIds = ['saveRoutine', 'saveMember', 'checkPass', 'confirmDelLog', 'confirmDelExp', 'confirmTaskReset', 'btnNextReset', 'btnFinalReset', 'saveNewMember', 'confirmDelMember'];
                 let attached = false;
                 actionBtnIds.forEach(id => {
                     const btn = document.getElementById(id);
