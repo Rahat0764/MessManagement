@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="bn" class="dark">
 <head>
@@ -80,7 +81,7 @@
             SUPABASE_KEY: "sb_publishable_PvTlRVCqaorax2qjd-9h-Q_vTWd-ziB", 
             TG_TOKEN:     "8822573911:AAHtJOAmQv92s15G3qBktTt5lfbbY6sgL1Q",
             TG_CHAT_ID:   "8837571965",
-            ADMIN_PASS:   "rahat0764", 
+            ADMIN_PASS:   "tamimkhalu69", 
             MONTHLY_FEE: 4500, 
             REBATE_PER_DAY: 50, 
             MIN_ABSENT_DAYS_FOR_REBATE: 3
@@ -451,29 +452,54 @@
 
         const buildOverviewHTML = () => {
             const totalFund = data.members.reduce((sum, m) => sum + Number(m.paid || 0), 0);
-            const totalSpent = data.expenses.filter(e => e.status === 'approved').reduce((sum, e) => sum + Number(e.total || 0), 0);
+            
+            // ধারকৃত টাকা ক্যালকুলেশন
+            const totalBorrowed = data.members.reduce((sum, m) => sum + Number(m.borrowed || 0), 0);
+            
+            // মোট খরচ = অ্যাপ্রুভড খরচ + সদস্যদের মোট ধার
+            const totalSpent = data.expenses.filter(e => e.status === 'approved').reduce((sum, e) => sum + Number(e.total || 0), 0) + totalBorrowed;
+            
             const remaining = totalFund - totalSpent;
 
-            let expenseList = data.expenses.map(e => `
+            // ডিসপ্লের জন্য খরচের লিস্টের সাথে ধারকৃত টাকার লিস্ট যুক্ত করা হচ্ছে
+            let displayExpenses = [...data.expenses];
+            
+            data.members.filter(m => m.borrowed > 0).forEach(m => {
+                displayExpenses.unshift({ // ধারকৃত টাকাগুলো লিস্টের শুরুতে দেখাবে
+                    id: `borrow_${m.id}`,
+                    type: 'মেস থেকে ধার',
+                    date: 'বর্তমান হিসাব',
+                    shopper: m.name,
+                    total: m.borrowed,
+                    status: 'approved',
+                    isBorrow: true // এটি একটি ভার্চুয়াল ফিল্ড, যা দিয়ে ধার এবং সাধারণ খরচের পার্থক্য করা হবে
+                });
+            });
+
+            let expenseList = displayExpenses.map(e => `
                 <div class="log-item p-4 border-b border-slate-100 dark:border-darkBorder/50 relative hover:bg-slate-800/30 transition-colors" data-search="${e.type.toLowerCase()} ${e.shopper?.toLowerCase() || ''} ${e.id}">
                     <div class="flex justify-between items-start pr-8">
                         <div class="flex gap-3">
-                            <div class="p-2 rounded-xl h-fit ${e.type === 'বাজার' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-orange-500/10 text-orange-500'}"><i data-lucide="${e.type === 'বাজার' ? 'shopping-bag' : 'receipt'}" class="w-5 h-5"></i></div>
+                            <div class="p-2 rounded-xl h-fit ${e.isBorrow ? 'bg-rose-500/10 text-rose-500' : (e.type === 'বাজার' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-orange-500/10 text-orange-500')}">
+                                <i data-lucide="${e.isBorrow ? 'hand-coins' : (e.type === 'বাজার' ? 'shopping-bag' : 'receipt')}" class="w-5 h-5"></i>
+                            </div>
                             <div>
-                                <span class="font-bold text-sm">${e.type}</span> <span class="text-[9px] text-slate-500 ml-1 bg-slate-800 px-1 rounded">#${e.id.substring(e.id.length-5)}</span>
+                                <span class="font-bold text-sm">${e.type}</span> 
+                                ${!e.isBorrow ? `<span class="text-[9px] text-slate-500 ml-1 bg-slate-800 px-1 rounded">#${e.id.substring(e.id.length-5)}</span>` : ''}
                                 <p class="text-[11px] text-slate-400 mt-0.5">${e.date} ${e.shopper ? `• <b>${e.shopper}</b>` : ''}</p>
                             </div>
                         </div>
                         <div class="text-right mt-1">
-                            <span class="text-xl font-bold block ${e.status === 'approved' ? 'text-emerald-500' : 'text-amber-500'}">৳${e.total}</span>
-                            <span class="text-[9px] px-2 py-0.5 rounded-full font-bold ${e.status === 'approved' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-amber-500/20 text-amber-500'}">${e.status === 'approved' ? 'Approved' : 'Pending'}</span>
+                            <span class="text-xl font-bold block ${e.status === 'approved' ? (e.isBorrow ? 'text-rose-500' : 'text-emerald-500') : 'text-amber-500'}">৳${e.total}</span>
+                            <span class="text-[9px] px-2 py-0.5 rounded-full font-bold ${e.status === 'approved' ? (e.isBorrow ? 'bg-rose-500/20 text-rose-500' : 'bg-emerald-500/20 text-emerald-500') : 'bg-amber-500/20 text-amber-500'}">${e.status === 'approved' ? 'Approved' : 'Pending'}</span>
                         </div>
                     </div>
                     ${e.items && e.items.length > 0 ? `<div class="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl mt-3 space-y-1.5 border dark:border-slate-700/50">${e.items.map(i=>`<div class="flex justify-between text-[11px]"><span class="text-slate-400">${i.name}</span><span class="font-bold">৳${i.amount}</span></div>`).join('')}</div>` : ''}
                     <div class="flex gap-2 mt-3 pl-11">
-                        ${isAdmin && e.status === 'pending' ? `<button class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold approve-exp-btn transition-transform active:scale-95" data-id="${e.id}">অ্যাপ্রুভ</button>` : ''}
+                        ${isAdmin && e.status === 'pending' && !e.isBorrow ? `<button class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold approve-exp-btn transition-transform active:scale-95" data-id="${e.id}">অ্যাপ্রুভ</button>` : ''}
                     </div>
-                    ${isAdmin ? `<button class="text-rose-500 absolute top-4 right-4 hover:bg-rose-500/20 p-1.5 rounded-lg del-exp-btn transition-colors" data-id="${e.id}"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>` : ''}
+                    ${isAdmin && !e.isBorrow ? `<button class="text-rose-500 absolute top-4 right-4 hover:bg-rose-500/20 p-1.5 rounded-lg del-exp-btn transition-colors" data-id="${e.id}"><i data-lucide="trash-2" class="w-4 h-4 pointer-events-none"></i></button>` : ''}
+                    ${e.isBorrow ? `<span class="absolute top-4 right-4 text-[9px] text-slate-500 bg-slate-800 px-2 py-1 rounded">সদস্য ট্যাব থেকে সম্পাদনাযোগ্য</span>` : ''}
                 </div>
             `).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো খরচের রেকর্ড নেই</div>';
 
@@ -511,7 +537,7 @@
             return `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div class="bg-gradient-to-br from-indigo-500 to-blue-600 p-5 rounded-3xl shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden transition-transform hover:-translate-y-1 duration-300"><i data-lucide="wallet" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-indigo-100 mb-1">মোট ফান্ড কালেকশন</span><h3 class="text-3xl font-bold relative z-10">৳${totalFund}</h3></div>
-                <div class="bg-gradient-to-br from-rose-500 to-orange-500 p-5 rounded-3xl shadow-xl shadow-rose-500/20 text-white relative overflow-hidden transition-transform hover:-translate-y-1 duration-300"><i data-lucide="trending-down" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-rose-100 mb-1">মোট খরচ (Approved)</span><h3 class="text-3xl font-bold relative z-10">৳${totalSpent}</h3></div>
+                <div class="bg-gradient-to-br from-rose-500 to-orange-500 p-5 rounded-3xl shadow-xl shadow-rose-500/20 text-white relative overflow-hidden transition-transform hover:-translate-y-1 duration-300"><i data-lucide="trending-down" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-rose-100 mb-1">মোট খরচ ও ধার</span><h3 class="text-3xl font-bold relative z-10">৳${totalSpent}</h3></div>
                 <div class="bg-gradient-to-br from-emerald-500 to-teal-500 p-5 rounded-3xl shadow-xl shadow-emerald-500/20 text-white relative overflow-hidden transition-transform hover:-translate-y-1 duration-300"><i data-lucide="piggy-bank" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-emerald-100 mb-1">বর্তমান ব্যালেন্স</span><h3 class="text-3xl font-bold relative z-10">৳${remaining}</h3></div>
             </div>
             
