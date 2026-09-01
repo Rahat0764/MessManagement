@@ -6,6 +6,7 @@
     <title>মেস ম্যানেজমেন্ট</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- PDF Generation Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
@@ -492,7 +493,6 @@
             const depositLogs = data.logs.filter(l => l.action.includes('জমা') || l.action.includes('মাইনাস') || l.action.includes('হিসাব') || l.action.includes('সদস্য') || l.action.includes('রিসেট') || l.action.includes('পরিষ্কার'));
             let depositHtml = depositLogs.map(l => {
                 let amountHtml = '';
-                // Bug fix: use regex that accepts decimal amounts as well
                 const amtMatch = l.details.match(/৳([\d\.]+)/);
                 if(amtMatch && (l.action.includes('জমা') || l.action.includes('মাইনাস'))) {
                     amountHtml = `<div class="text-right mt-1"><span class="text-xl font-bold block ${l.action.includes('মাইনাস') ? 'text-rose-500' : 'text-emerald-500'}">৳${amtMatch[1]}</span></div>`;
@@ -521,21 +521,23 @@
                 </div>`;
             }).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো জমার হিস্ট্রি নেই</div>';
 
+            const gridCols = isAdmin ? 'md:grid-cols-3' : 'md:grid-cols-2';
+
             return `
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <!-- Export & Action Buttons Container -->
+            <div class="grid grid-cols-2 ${gridCols} gap-3 mb-6">
                 <button id="exportPdfBtn" class="flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white p-3 rounded-2xl shadow-lg shadow-indigo-500/20 transition-all active:scale-95">
                     <i data-lucide="file-text" class="w-5 h-5"></i><span class="text-[10px] font-bold uppercase tracking-wider">PDF এক্সপোর্ট</span>
-                </button>
-                <button id="exportCsvBtn" class="flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white p-3 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95">
-                    <i data-lucide="sheet" class="w-5 h-5"></i><span class="text-[10px] font-bold uppercase tracking-wider">CSV এক্সপোর্ট</span>
                 </button>
                 <button id="backupJsonBtn" class="flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white p-3 rounded-2xl shadow-lg shadow-slate-500/20 transition-all active:scale-95">
                     <i data-lucide="download-cloud" class="w-5 h-5"></i><span class="text-[10px] font-bold uppercase tracking-wider">ডেটা ব্যাকআপ</span>
                 </button>
-                <label class="flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white p-3 rounded-2xl shadow-lg shadow-rose-500/20 transition-all active:scale-95 cursor-pointer">
+                ${isAdmin ? `
+                <label class="col-span-2 md:col-span-1 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white p-3 rounded-2xl shadow-lg shadow-rose-500/20 transition-all active:scale-95 cursor-pointer">
                     <i data-lucide="upload-cloud" class="w-5 h-5"></i><span class="text-[10px] font-bold uppercase tracking-wider">রিস্টোর (JSON)</span>
                     <input type="file" id="importJsonFile" accept=".json" class="hidden">
                 </label>
+                ` : ''}
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -652,14 +654,30 @@
             
             showToast('PDF তৈরি হচ্ছে, অপেক্ষা করুন...');
             
-            html2pdf().set({
+            const opt = {
                 margin: 0,
                 filename: `Mess_Statement_${new Date().toISOString().split('T')[0]}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            }).from(element).save().then(() => {
+            };
+
+            html2pdf().set(opt).from(element).output('datauristring').then(function(pdfBase64) {
+                const filename = opt.filename;
+                // Check if running inside Android WebView with Interface
+                if (window.AndroidDownloader) {
+                    window.AndroidDownloader.saveBase64(pdfBase64, filename);
+                } else {
+                    const link = document.createElement("a");
+                    link.href = pdfBase64;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                }
                 showToast('PDF ডাউনলোড হয়েছে!');
+            }).catch(err => {
+                showToast('PDF তৈরিতে সমস্যা হয়েছে!', 'error');
             });
         };
 
@@ -804,83 +822,72 @@
                 }
 
                 document.getElementById('exportPdfBtn')?.addEventListener('click', generatePDFStatement);
-                
-                document.getElementById('exportCsvBtn')?.addEventListener('click', () => {
-                    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-                    csvContent += "Type,Name/Shopper,Amount,Status,Date\n";
-                    // Members CSV part
-                    data.members.forEach(m => { csvContent += `Member,${m.name},${m.paid || 0},Active,-\n`; });
-                    // Expenses CSV part
-                    data.expenses.forEach(e => { csvContent += `Expense,${e.type} (${e.shopper||''}),${e.total},${e.status},${e.date}\n`; });
-                    
-                    const encodedUri = encodeURI(csvContent);
-                    const link = document.createElement("a");
-                    link.setAttribute("href", encodedUri);
-                    link.setAttribute("download", "Mess_Data.csv");
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                });
 
                 document.getElementById('backupJsonBtn')?.addEventListener('click', () => {
-                    const backup = JSON.stringify(data);
-                    const blob = new Blob([backup], { type: "application/json" });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement("a");
-                    link.href = url;
-                    link.download = `Mess_Backup_${new Date().toISOString().split('T')[0]}.json`;
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
+                    const backup = JSON.stringify(data, null, 4); // Structured JSON
+                    const filename = `Mess_Backup_${new Date().toISOString().split('T')[0]}.json`;
+                    
+                    // Convert to base64 properly (supporting Bangla chars)
+                    const base64Json = "data:application/json;base64," + btoa(unescape(encodeURIComponent(backup)));
+
+                    if (window.AndroidDownloader) {
+                        window.AndroidDownloader.saveBase64(base64Json, filename);
+                    } else {
+                        const link = document.createElement("a");
+                        link.href = base64Json;
+                        link.download = filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                    }
                     showToast('ডেটা ব্যাকআপ ডাউনলোড হয়েছে।');
                 });
 
-                document.getElementById('importJsonFile')?.addEventListener('change', (e) => {
-                    const file = e.target.files[0];
-                    if(!file) return;
-                    if(!isAdmin) return showToast('রিস্টোর করার জন্য এডমিন পারমিশন প্রয়োজন!', 'error');
+                if (document.getElementById('importJsonFile')) {
+                    document.getElementById('importJsonFile').addEventListener('change', (e) => {
+                        const file = e.target.files[0];
+                        if(!file) return;
+                        if(!isAdmin) return showToast('রিস্টোর করার জন্য এডমিন পারমিশন প্রয়োজন!', 'error');
 
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        showModal(`
-                            <h3 class="font-bold text-rose-500 mb-3 text-center">ডেটা রিস্টোর ওয়ার্নিং!</h3>
-                            <p class="text-xs text-slate-400 mb-4 text-center">আপনি একটি ব্যাকআপ ফাইল রিস্টোর করতে যাচ্ছেন। এর ফলে বর্তমান সব ডেটা মুছে গিয়ে ব্যাকআপ ফাইলের ডেটা দিয়ে রিপ্লেস হবে। আপনি কি নিশ্চিত?</p>
-                            <input type="password" id="restorePass" class="w-full p-3 bg-slate-800 border border-slate-700 text-center text-sm rounded-xl outline-none focus:border-rose-500 transition-colors" placeholder="এডমিন পাসওয়ার্ড">
-                            <div class="flex gap-3 mt-6">
-                                <button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button>
-                                <button id="confirmRestore" class="flex-1 py-3 text-sm bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-md shadow-rose-500/20 transition-all active:scale-95">রিস্টোর করুন</button>
-                            </div>
-                        `, async () => {
-                            if(document.getElementById('restorePass').value !== CONFIG.ADMIN_PASS) return showToast('ভুল পাসওয়ার্ড!', 'error');
-                            
-                            try {
-                                const importedData = JSON.parse(event.target.result);
-                                if(importedData && importedData.members && importedData.expenses) {
-                                    // Set Local State
-                                    data = importedData;
-                                    
-                                    // IMPORTANT: Supabase sync (Delete old, insert new)
-                                    if (supabase) {
-                                        showToast('Supabase এ ডেটা ওভাররাইট হচ্ছে, অপেক্ষা করুন...');
-                                        await supabase.from('members').delete().not('id', 'is', null);
-                                        await supabase.from('expenses').delete().not('id', 'is', null);
-                                        await supabase.from('activity_logs').delete().not('id', 'is', null);
-                                        
-                                        if(data.members.length) await supabase.from('members').insert(data.members);
-                                        if(data.expenses.length) await supabase.from('expenses').insert(data.expenses);
-                                        if(data.logs.length) await supabase.from('activity_logs').insert(data.logs);
-                                        if(data.cleaning) await supabase.from('cleaning_tasks').update(data.cleaning).eq('id', '1');
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            showModal(`
+                                <h3 class="font-bold text-rose-500 mb-3 text-center">ডেটা রিস্টোর ওয়ার্নিং!</h3>
+                                <p class="text-xs text-slate-400 mb-4 text-center">আপনি একটি ব্যাকআপ ফাইল রিস্টোর করতে যাচ্ছেন। এর ফলে বর্তমান সব ডেটা মুছে গিয়ে ব্যাকআপ ফাইলের ডেটা দিয়ে রিপ্লেস হবে। আপনি কি নিশ্চিত?</p>
+                                <input type="password" id="restorePass" class="w-full p-3 bg-slate-800 border border-slate-700 text-center text-sm rounded-xl outline-none focus:border-rose-500 transition-colors" placeholder="এডমিন পাসওয়ার্ড">
+                                <div class="flex gap-3 mt-6">
+                                    <button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button>
+                                    <button id="confirmRestore" class="flex-1 py-3 text-sm bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-md shadow-rose-500/20 transition-all active:scale-95">রিস্টোর করুন</button>
+                                </div>
+                            `, async () => {
+                                if(document.getElementById('restorePass').value !== CONFIG.ADMIN_PASS) return showToast('ভুল পাসওয়ার্ড!', 'error');
+                                
+                                try {
+                                    const importedData = JSON.parse(event.target.result);
+                                    if(importedData && importedData.members && importedData.expenses) {
+                                        data = importedData;
+                                        if (supabase) {
+                                            showToast('Supabase এ ডেটা ওভাররাইট হচ্ছে, অপেক্ষা করুন...');
+                                            await supabase.from('members').delete().not('id', 'is', null);
+                                            await supabase.from('expenses').delete().not('id', 'is', null);
+                                            await supabase.from('activity_logs').delete().not('id', 'is', null);
+                                            
+                                            if(data.members.length) await supabase.from('members').insert(data.members);
+                                            if(data.expenses.length) await supabase.from('expenses').insert(data.expenses);
+                                            if(data.logs.length) await supabase.from('activity_logs').insert(data.logs);
+                                            if(data.cleaning) await supabase.from('cleaning_tasks').update(data.cleaning).eq('id', '1');
+                                        }
+                                        hideModal(); render(); showToast('ডেটা সফলভাবে রিস্টোর হয়েছে!', 'success');
+                                    } else {
+                                        showToast('ভুল ফাইল ফরম্যাট!', 'error');
                                     }
-                                    
-                                    hideModal(); render(); showToast('ডেটা সফলভাবে রিস্টোর হয়েছে!', 'success');
-                                } else {
-                                    showToast('ভুল ফাইল ফরম্যাট!', 'error');
-                                }
-                            } catch (err) { showToast('ফাইল রিড করতে সমস্যা হয়েছে!', 'error'); }
-                        });
-                    };
-                    reader.readAsText(file);
-                });
+                                } catch (err) { showToast('ফাইল রিড করতে সমস্যা হয়েছে!', 'error'); }
+                            });
+                        };
+                        reader.readAsText(file);
+                        e.target.value = ''; // Reset input
+                    });
+                }
 
                 document.querySelectorAll('.approve-exp-btn').forEach(btn => btn.addEventListener('click', async (e) => {
                     const id = e.currentTarget.dataset.id;
@@ -936,7 +943,7 @@
                             setTimeout(() => {
                                 showModal(`
                                     <h3 class="font-bold text-rose-500 text-lg mb-4 border-b border-slate-700 pb-3 text-center">চূড়ান্ত কনফার্মেশন (ধাপ ২/২)</h3>
-                                    <p class="text-xs text-rose-400 mb-4 text-center">এই কাজটি আর ফিরিয়ে আনা যাবে না (Undo করা যাবে না)। নিশ্চিত করতে আবার পাসওয়ার্ড দিন:</p>
+                                    <p class="text-xs text-rose-400 mb-4 text-center">এই কাজটি আর ফিরিয়ে আনা যাবে না (Undo করা যাবে fix)। নিশ্চিত করতে আবার পাসওয়ার্ড দিন:</p>
                                     <input type="password" id="resetPass2" class="w-full p-3 bg-slate-800 border border-rose-500/50 text-center text-sm rounded-xl outline-none tracking-widest font-mono focus:border-rose-500 transition-colors" placeholder="কনফার্ম পাসওয়ার্ড">
                                     <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="btnFinalReset" class="flex-1 py-3 text-sm bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-lg shadow-rose-500/30 transition-all active:scale-95">সব মুছে ফেলুন</button></div>
                                 `, async () => {
@@ -1041,7 +1048,7 @@
                 document.getElementById('delMemberBtn')?.addEventListener('click', () => {
                     showModal(`
                         <h3 class="font-bold text-rose-500 mb-3 text-center">সদস্য মুছে ফেলুন</h3>
-                        <p class="text-xs text-slate-400 mb-4 text-center">আপনি কি নিশ্চিত যে <b>${m.name}</b> কে মেস থেকে বাদ দিতে চান? এটি আর ফিরিয়ে আনা যাবে না (Undo করা যাবে না)! (সদস্য ডিলিট করলে মোট ফান্ডের সাথে হিস্ট্রির অমিল হতে পারে)</p>
+                        <p class="text-xs text-slate-400 mb-4 text-center">আপনি কি নিশ্চিত যে <b>${m.name}</b> কে মেস থেকে বাদ দিতে চান? এটি আর ফিরিয়ে আনা যাবে না!</p>
                         <div class="flex gap-3 mt-6">
                             <button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button>
                             <button id="confirmDelMember" class="flex-1 py-3 text-sm bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold shadow-md shadow-rose-500/20 transition-all active:scale-95">মুছুন</button>
