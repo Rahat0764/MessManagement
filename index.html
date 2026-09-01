@@ -119,6 +119,17 @@
         const generateUniqueId = () => String(Date.now()) + '-' + Math.random().toString(36).substr(2, 5);
         const generateRefId = () => Math.random().toString(36).substr(2, 6).toUpperCase();
 
+        // Formats a number with thousand separators, e.g. 1000 -> "1,000", 5450.75 -> "5,450.75"
+        const fmt = (n) => {
+            n = Number(n);
+            if (isNaN(n)) n = 0;
+            return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+        };
+
+        // Extracts the millisecond epoch encoded at the start of our generateUniqueId() ids,
+        // so we can always sort by the true creation time regardless of any locale date string.
+        const idTime = (id) => parseInt(String(id).split('-')[0], 10) || 0;
+
         const showToast = (msg, type = 'success') => {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -211,7 +222,7 @@
                         supabase.from('routine').select('*').order('id'),
                         supabase.from('members').select('*').order('id'),
                         supabase.from('expenses').select('*').order('date', { ascending: false }),
-                        supabase.from('activity_logs').select('*').order('timestamp', { ascending: false }),
+                        supabase.from('activity_logs').select('*').order('id', { ascending: false }),
                         supabase.from('cleaning_tasks').select('*').eq('id', '1')
                     ]);
                     if (resR.data) data.routine = resR.data;
@@ -345,16 +356,16 @@
                     ${isAdmin ? `<button class="edit-member-btn absolute top-4 right-4 p-2 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-xl hover:text-indigo-500 transition-colors" data-id="${m.id}"><i data-lucide="edit-2" class="w-4 h-4"></i></button>` : ''}
                     <div class="flex items-center gap-4 mb-4">
                         <div class="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-100 to-purple-200 dark:from-indigo-900 dark:to-purple-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold text-xl shadow-inner">${m.name.charAt(0)}</div>
-                        <div><h4 class="font-bold text-lg">${m.name}</h4><p class="text-xs text-slate-500">অফ: ${absent} দিন (রিবেট ৳${rebate})</p></div>
+                        <div><h4 class="font-bold text-lg">${m.name}</h4><p class="text-xs text-slate-500">অফ: ${absent} দিন (রিবেট ৳${fmt(rebate)})</p></div>
                     </div>
                     <div class="grid grid-cols-2 gap-2 mb-4 text-sm border-t border-b border-slate-100 dark:border-darkBorder/50 py-3">
-                        <div class="flex justify-between"><span class="text-slate-500">জমা:</span> <span class="font-bold text-emerald-500">৳${m.paid || 0}</span></div>
-                        <div class="flex justify-between"><span class="text-slate-500">খরচ:</span> <span class="font-bold">৳${mealCost} <span class="text-[9px] text-slate-400 font-normal ml-1">(ফি ৳${baseFee})</span></span></div>
-                        ${m.borrowed > 0 ? `<div class="flex justify-between col-span-2"><span class="text-slate-500">মাইনাস/ধার:</span> <span class="font-bold text-rose-500">৳${m.borrowed}</span></div>` : ''}
+                        <div class="flex justify-between"><span class="text-slate-500">জমা:</span> <span class="font-bold text-emerald-500">৳${fmt(m.paid || 0)}</span></div>
+                        <div class="flex justify-between"><span class="text-slate-500">খরচ:</span> <span class="font-bold">৳${fmt(mealCost)} <span class="text-[9px] text-slate-400 font-normal ml-1">(ফি ৳${fmt(baseFee)})</span></span></div>
+                        ${m.borrowed > 0 ? `<div class="flex justify-between col-span-2"><span class="text-slate-500">মাইনাস/ধার:</span> <span class="font-bold text-rose-500">৳${fmt(m.borrowed)}</span></div>` : ''}
                     </div>
                     <div class="${badgeColor} border p-3 rounded-2xl flex items-center justify-between transition-colors">
                         <div class="flex items-center gap-2 ${textColor}"><i data-lucide="${badgeIcon}" class="w-5 h-5"></i><span class="text-xs font-bold uppercase">${badgeText}</span></div>
-                        <span class="text-lg font-bold ${textColor}">৳${Math.abs(netBalance)}</span>
+                        <span class="text-lg font-bold ${textColor}">৳${fmt(Math.abs(netBalance))}</span>
                     </div>
                 </div>`;
             }).join('');
@@ -450,7 +461,11 @@
             const totalSpent = data.expenses.filter(e => e.status === 'approved').reduce((sum, e) => sum + Number(e.total || 0), 0) + totalBorrowed;
             const remaining = totalFund - totalSpent;
 
-            let displayExpenses = [...data.expenses];
+            let displayExpenses = [...data.expenses].sort((a, b) => {
+                const dcmp = String(b.date).localeCompare(String(a.date));
+                if (dcmp !== 0) return dcmp;
+                return idTime(b.id) - idTime(a.id);
+            });
             data.members.filter(m => m.borrowed > 0).forEach(m => {
                 displayExpenses.unshift({
                     id: `borrow_${m.id}`,
@@ -477,11 +492,11 @@
                             </div>
                         </div>
                         <div class="text-right mt-1">
-                            <span class="text-xl font-bold block ${e.status === 'approved' ? (e.isBorrow ? 'text-rose-500' : 'text-emerald-500') : 'text-amber-500'}">৳${e.total}</span>
+                            <span class="text-xl font-bold block ${e.status === 'approved' ? (e.isBorrow ? 'text-rose-500' : 'text-emerald-500') : 'text-amber-500'}">৳${fmt(e.total)}</span>
                             <span class="text-[9px] px-2 py-0.5 rounded-full font-bold ${e.status === 'approved' ? (e.isBorrow ? 'bg-rose-500/20 text-rose-500' : 'bg-emerald-500/20 text-emerald-500') : 'bg-amber-500/20 text-amber-500'}">${e.status === 'approved' ? 'Approved' : 'Pending'}</span>
                         </div>
                     </div>
-                    ${e.items && e.items.length > 0 ? `<div class="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl mt-3 space-y-1.5 border dark:border-slate-700/50">${e.items.map(i=>`<div class="flex justify-between text-[11px]"><span class="text-slate-400">${i.name}</span><span class="font-bold">৳${i.amount}</span></div>`).join('')}</div>` : ''}
+                    ${e.items && e.items.length > 0 ? `<div class="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl mt-3 space-y-1.5 border dark:border-slate-700/50">${e.items.map(i=>`<div class="flex justify-between text-[11px]"><span class="text-slate-400">${i.name}</span><span class="font-bold">৳${fmt(i.amount)}</span></div>`).join('')}</div>` : ''}
                     <div class="flex gap-2 mt-3 pl-11">
                         ${isAdmin && e.status === 'pending' && !e.isBorrow ? `<button class="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold approve-exp-btn transition-transform active:scale-95" data-id="${e.id}">অ্যাপ্রুভ</button>` : ''}
                     </div>
@@ -490,12 +505,12 @@
                 </div>
             `).join('') || '<div class="p-8 text-center text-slate-500 text-sm">কোনো খরচের রেকর্ড নেই</div>';
 
-            const depositLogs = data.logs.filter(l => l.action.includes('জমা') || l.action.includes('মাইনাস') || l.action.includes('হিসাব') || l.action.includes('সদস্য') || l.action.includes('রিসেট') || l.action.includes('পরিষ্কার'));
+            const depositLogs = data.logs.filter(l => l.action.includes('জমা') || l.action.includes('মাইনাস') || l.action.includes('হিসাব') || l.action.includes('সদস্য') || l.action.includes('রিসেট') || l.action.includes('পরিষ্কার')).sort((a, b) => idTime(b.id) - idTime(a.id));
             let depositHtml = depositLogs.map(l => {
                 let amountHtml = '';
-                const amtMatch = l.details.match(/৳([\d\.]+)/);
+                const amtMatch = l.details.match(/৳([\d,]+\.?\d*)/);
                 if(amtMatch && (l.action.includes('জমা') || l.action.includes('মাইনাস'))) {
-                    amountHtml = `<div class="text-right mt-1"><span class="text-xl font-bold block ${l.action.includes('মাইনাস') ? 'text-rose-500' : 'text-emerald-500'}">৳${amtMatch[1]}</span></div>`;
+                    amountHtml = `<div class="text-right mt-1"><span class="text-xl font-bold block ${l.action.includes('মাইনাস') ? 'text-rose-500' : 'text-emerald-500'}">৳${fmt(amtMatch[1].replace(/,/g,''))}</span></div>`;
                 }
 
                 let iconType = 'piggy-bank';
@@ -541,9 +556,9 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="bg-gradient-to-br from-indigo-500 to-blue-600 p-5 rounded-3xl shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden transition-transform hover:-translate-y-1 duration-300"><i data-lucide="wallet" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-indigo-100 mb-1">মোট ফান্ড কালেকশন</span><h3 class="text-3xl font-bold relative z-10">৳${totalFund}</h3></div>
-                <div class="bg-gradient-to-br from-rose-500 to-orange-500 p-5 rounded-3xl shadow-xl shadow-rose-500/20 text-white relative overflow-hidden transition-transform hover:-translate-y-1 duration-300"><i data-lucide="trending-down" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-rose-100 mb-1">মোট খরচ ও ধার</span><h3 class="text-3xl font-bold relative z-10">৳${totalSpent}</h3></div>
-                <div class="bg-gradient-to-br from-emerald-500 to-teal-500 p-5 rounded-3xl shadow-xl shadow-emerald-500/20 text-white relative overflow-hidden transition-transform hover:-translate-y-1 duration-300"><i data-lucide="piggy-bank" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-emerald-100 mb-1">বর্তমান ব্যালেন্স</span><h3 class="text-3xl font-bold relative z-10">৳${remaining}</h3></div>
+                <div class="bg-gradient-to-br from-indigo-500 to-blue-600 p-5 rounded-3xl shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden transition-transform hover:-translate-y-1 duration-300"><i data-lucide="wallet" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-indigo-100 mb-1">মোট ফান্ড কালেকশন</span><h3 class="text-3xl font-bold relative z-10">৳${fmt(totalFund)}</h3></div>
+                <div class="bg-gradient-to-br from-rose-500 to-orange-500 p-5 rounded-3xl shadow-xl shadow-rose-500/20 text-white relative overflow-hidden transition-transform hover:-translate-y-1 duration-300"><i data-lucide="trending-down" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-rose-100 mb-1">মোট খরচ ও ধার</span><h3 class="text-3xl font-bold relative z-10">৳${fmt(totalSpent)}</h3></div>
+                <div class="bg-gradient-to-br from-emerald-500 to-teal-500 p-5 rounded-3xl shadow-xl shadow-emerald-500/20 text-white relative overflow-hidden transition-transform hover:-translate-y-1 duration-300"><i data-lucide="piggy-bank" class="absolute -right-4 -bottom-4 w-28 h-28 text-white/10 transform rotate-12"></i><span class="text-[11px] font-bold block uppercase tracking-wider text-emerald-100 mb-1">বর্তমান ব্যালেন্স</span><h3 class="text-3xl font-bold relative z-10">৳${fmt(remaining)}</h3></div>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
@@ -577,67 +592,123 @@
         const generatePDFStatement = () => {
             const totalFund = data.members.reduce((sum, m) => sum + Number(m.paid || 0), 0);
             const totalBorrowed = data.members.reduce((sum, m) => sum + Number(m.borrowed || 0), 0);
-            const totalSpent = data.expenses.filter(e => e.status === 'approved').reduce((sum, e) => sum + Number(e.total || 0), 0) + totalBorrowed;
+            const approvedExpenses = data.expenses.filter(e => e.status === 'approved');
+            const totalSpent = approvedExpenses.reduce((sum, e) => sum + Number(e.total || 0), 0) + totalBorrowed;
             const remaining = totalFund - totalSpent;
-            const dateStr = new Date().toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' });
+            const bnDate = (d) => d.toLocaleDateString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric' });
+            const genDate = bnDate(new Date());
 
+            // Figure out the date range this statement covers: earliest known entry -> now
+            let allTimes = [];
+            data.expenses.forEach(e => { if (e.date) { const d = new Date(e.date); if (!isNaN(d)) allTimes.push(d.getTime()); } });
+            data.logs.forEach(l => { const t = idTime(l.id); if (t) allTimes.push(t); });
+            const firstDate = allTimes.length ? new Date(Math.min(...allTimes)) : new Date();
+            const rangeStr = `${bnDate(firstDate)} থেকে ${genDate} পর্যন্ত হিসাব`;
+
+            // ---- Build the full deposit/minus ledger from activity history ----
+            const ledgerEntries = data.logs
+                .filter(l => l.action === 'টাকা জমা' || l.action === 'হিসাব মাইনাস')
+                .map(l => {
+                    const isMinus = l.action === 'হিসাব মাইনাস';
+                    const dep = l.details.match(/^(.*?) নতুন করে ৳([\d,]+\.?\d*) জমা দিয়েছে/);
+                    const min = l.details.match(/^(.*?) এর জমা থেকে ৳([\d,]+\.?\d*) কমানো হয়েছে/);
+                    const m = dep || min;
+                    const name = m ? m[1] : (l.details.split(' ')[0] || '—');
+                    const amt = m ? Number(m[2].replace(/,/g, '')) : 0;
+                    return { time: idTime(l.id) || Date.now(), name, amt, isMinus };
+                })
+                .sort((a, b) => b.time - a.time);
+
+            const ledgerHtml = ledgerEntries.length ? ledgerEntries.map(e => `
+                <div style="break-inside: avoid; background: ${e.isMinus ? 'rgba(220,38,38,0.06)' : 'rgba(22,163,74,0.06)'}; border: 1px solid ${e.isMinus ? 'rgba(220,38,38,0.2)' : 'rgba(22,163,74,0.2)'}; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:bold; font-size:12.5px;">${e.name}</span>
+                        <span style="font-weight:bold; font-size:13.5px; color:${e.isMinus ? '#dc2626' : '#16a34a'};">${e.isMinus ? '-' : '+'}৳${fmt(e.amt)}</span>
+                    </div>
+                    <div style="font-size:10.5px; color:#64748b; margin-top:3px;">${bnDate(new Date(e.time))} • ${e.isMinus ? 'জমা থেকে মাইনাস' : 'নতুন জমা'}</div>
+                </div>`).join('') : '<div style="color:#94a3b8; text-align:center; padding: 20px;">কোনো জমার হিস্ট্রি নেই</div>';
+
+            // ---- Build the full itemized expense ledger (bazaar items, bills, borrow) ----
+            const typeEmoji = (t) => t === 'বাজার' ? '🛒' : (t === 'ওয়াইফাই বিল' ? '📶' : (t === 'বাসা ভাড়া' ? '🏠' : (t === 'কারেন্ট বিল' ? '⚡' : (t === 'খালার বিল' ? '👩‍🍳' : '🧾'))));
+            const expenseCardsHtml = approvedExpenses.length ? approvedExpenses.map(e => `
+                <div style="break-inside: avoid; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:bold; font-size:13px;">${typeEmoji(e.type)} ${e.type}${e.shopper ? ` <span style="color:#64748b; font-weight:normal; font-size:11px;">(${e.shopper})</span>` : ''}</span>
+                        <span style="font-weight:bold; font-size:14px; color:#c2410c;">৳${fmt(e.total)}</span>
+                    </div>
+                    <div style="font-size:10.5px; color:#94a3b8; margin-top:2px;">${e.date}</div>
+                    ${e.items && e.items.length ? `<div style="margin-top:8px; background:white; border-radius:8px; padding:8px 10px;">
+                        ${e.items.map(i => `<div style="display:flex; justify-content:space-between; font-size:11px; padding:3px 0; border-bottom:1px dashed #f1f5f9;"><span>${i.name}</span><b>৳${fmt(i.amount)}</b></div>`).join('')}
+                    </div>` : ''}
+                </div>`).join('') : '<div style="color:#94a3b8; text-align:center; padding: 20px;">কোনো খরচের রেকর্ড নেই</div>';
+
+            const borrowCardsHtml = data.members.filter(m => m.borrowed > 0).map(m => `
+                <div style="break-inside: avoid; background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.2); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:bold; font-size:13px;">🤝 সদস্যদের ধার <span style="color:#64748b; font-weight:normal; font-size:11px;">(${m.name})</span></span>
+                        <span style="font-weight:bold; font-size:14px; color:#dc2626;">৳${fmt(m.borrowed)}</span>
+                    </div>
+                </div>`).join('');
+
+            // ---- Member-wise report table (page 3) ----
             let membersHtml = data.members.map((m, idx) => {
                 let baseFee = (m.custom_fee !== undefined && m.custom_fee !== null && m.custom_fee !== '') ? Number(m.custom_fee) : CONFIG.MONTHLY_FEE;
                 let absent = m.absentDays || 0;
                 let rebate = absent > CONFIG.MIN_ABSENT_DAYS_FOR_REBATE ? absent * CONFIG.REBATE_PER_DAY : 0;
                 let expected = baseFee - rebate;
                 let netBalance = (m.paid || 0) - expected - (m.borrowed || 0);
-                
+
                 let statColor = netBalance > 0 ? '#16a34a' : (netBalance < 0 ? '#dc2626' : '#475569');
-                let statText = netBalance > 0 ? `+৳${netBalance} (বেশি দিয়েছে)` : (netBalance < 0 ? `-৳${Math.abs(netBalance)} (কম দিয়েছে)` : `ক্লিয়ার`);
+                let statText = netBalance > 0 ? `+৳${fmt(netBalance)} (বেশি দিয়েছে)` : (netBalance < 0 ? `-৳${fmt(Math.abs(netBalance))} (কম দিয়েছে)` : `ক্লিয়ার`);
                 let rowBg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
 
                 return `
                 <tr style="background-color: ${rowBg};">
                     <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${m.name}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">৳${expected} ${rebate>0?`<span style="font-size:10px;color:#64748b;">(রিবেট: ৳${rebate})</span>`:''}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">৳${m.paid || 0}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">৳${fmt(expected)} ${rebate>0?`<span style="font-size:10px;color:#64748b;">(রিবেট: ৳${fmt(rebate)})</span>`:''}</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">৳${fmt(m.paid || 0)}</td>
                     <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: ${statColor};">${statText}</td>
                 </tr>`;
             }).join('');
 
             const html = `
             <div style="font-family: 'Hind Siliguri', sans-serif; padding: 0; color: #1e293b; background: white;">
-                <div style="background: linear-gradient(135deg, #4f46e5, #7c3aed); padding: 28px 30px; color: white;">
-                    <h1 style="margin: 0; font-size: 26px; font-weight: 700;">🏠 মাসিক মেস হিসাব স্টেটমেন্ট</h1>
-                    <p style="opacity: 0.9; margin-top: 6px; font-size: 13px;">তৈরির তারিখ: ${dateStr}</p>
+
+                <!-- ===== PAGE 1: header + full deposit history ===== -->
+                <div style="background: linear-gradient(135deg, #4f46e5, #7c3aed); padding: 26px 30px; color: white;">
+                    <h1 style="margin: 0; font-size: 24px; font-weight: 700;">🏠 মাসিক মেস হিসাব স্টেটমেন্ট</h1>
+                    <p style="opacity: 0.9; margin-top: 6px; font-size: 12.5px;">${rangeStr}</p>
+                </div>
+                <div style="padding: 22px 28px;">
+                    <h3 style="color: #166534; margin: 0 0 14px 0; font-size: 16px;">💰 মোট জমা (আয়)</h3>
+                    <div style="column-count: 2; column-gap: 18px;">
+                        ${ledgerHtml}
+                    </div>
+                    <div style="margin-top: 10px; background: linear-gradient(135deg, #ecfdf5, #f0fdf4); border: 1px solid #bbf7d0; padding: 16px; border-radius: 12px; text-align: center;">
+                        <span style="font-size: 11px; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">সর্বমোট জমা</span>
+                        <h2 style="margin: 4px 0 0 0; font-size: 24px; color: #166534;">৳${fmt(totalFund)}</h2>
+                    </div>
                 </div>
 
-                <div style="padding: 26px 30px;">
-                    <div style="display: flex; gap: 18px; margin-bottom: 20px;">
-                        <div style="flex: 1; background-color: rgba(22, 163, 74, 0.08); padding: 20px; border-radius: 14px; border: 1px solid rgba(22, 163, 74, 0.25);">
-                            <h3 style="color: #166534; margin: 0 0 14px 0; font-size: 15px; display:flex; align-items:center; gap:6px;">💰 মোট জমা (আয়) — কারণসহ</h3>
-                            <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px;">
-                                ${data.members.map(m => `<li style="display: flex; justify-content: space-between; margin-bottom: 7px; padding-bottom: 7px; border-bottom: 1px dashed rgba(22,163,74,0.25);"><span>${m.name} <span style="color:#64748b;font-size:11px;">(সদস্য জমা)</span></span> <b>৳${m.paid || 0}</b></li>`).join('')}
-                            </ul>
-                            <div style="margin-top: 14px; padding-top: 12px; border-top: 2px solid rgba(22, 163, 74, 0.4); display: flex; justify-content: space-between; font-weight: bold; font-size: 17px; color: #166534;">
-                                <span>সর্বমোট জমা:</span> <span>৳${totalFund}</span>
-                            </div>
-                        </div>
-
-                        <div style="flex: 1; background-color: rgba(220, 38, 38, 0.08); padding: 20px; border-radius: 14px; border: 1px solid rgba(220, 38, 38, 0.25);">
-                            <h3 style="color: #991b1b; margin: 0 0 14px 0; font-size: 15px; display:flex; align-items:center; gap:6px;">🧾 মোট খরচ (ব্যয়) — কারণসহ</h3>
-                            <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px;">
-                                ${data.expenses.filter(e=>e.status==='approved').map(e => `<li style="display: flex; justify-content: space-between; margin-bottom: 7px; padding-bottom: 7px; border-bottom: 1px dashed rgba(220,38,38,0.25);"><span>${e.type}${e.shopper ? ` <span style="color:#64748b;font-size:11px;">(${e.shopper})</span>` : ''}</span> <b>৳${e.total}</b></li>`).join('') || '<li style="color:#94a3b8;">কোনো খরচ নেই</li>'}
-                                ${totalBorrowed > 0 ? `<li style="display: flex; justify-content: space-between; margin-bottom: 7px; padding-bottom: 7px; border-bottom: 1px dashed rgba(220,38,38,0.25);"><span>সদস্যদের ধার</span> <b>৳${totalBorrowed}</b></li>` : ''}
-                            </ul>
-                            <div style="margin-top: 14px; padding-top: 12px; border-top: 2px solid rgba(220, 38, 38, 0.4); display: flex; justify-content: space-between; font-weight: bold; font-size: 17px; color: #991b1b;">
-                                <span>সর্বমোট খরচ:</span> <span>৳${totalSpent}</span>
-                            </div>
-                        </div>
+                <!-- ===== PAGE 2: full itemized expense history ===== -->
+                <div style="page-break-before: always; padding: 26px 28px 22px 28px;">
+                    <h3 style="color: #9a3412; margin: 0 0 14px 0; font-size: 16px;">🧾 মোট খরচ (ব্যয়)</h3>
+                    ${expenseCardsHtml}
+                    ${borrowCardsHtml}
+                    <div style="margin-top: 10px; background: linear-gradient(135deg, #fff7ed, #fef2f2); border: 1px solid #fecaca; padding: 16px; border-radius: 12px; text-align: center;">
+                        <span style="font-size: 11px; color: #9a3412; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">সর্বমোট খরচ</span>
+                        <h2 style="margin: 4px 0 0 0; font-size: 24px; color: #9a3412;">৳${fmt(totalSpent)}</h2>
                     </div>
+                </div>
 
+                <!-- ===== PAGE 3: remaining balance + member report ===== -->
+                <div style="page-break-before: always; padding: 26px 28px;">
                     <div style="background: linear-gradient(135deg, #eef2ff, #f5f3ff); padding: 18px; border-radius: 14px; text-align: center; border: 1px solid #c7d2fe; margin-bottom: 26px;">
-                        <span style="font-size: 12px; color: #6366f1; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">বর্তমান অবশিষ্ট ব্যালেন্স</span>
-                        <h2 style="margin: 4px 0 0 0; font-size: 26px; color: ${remaining >= 0 ? '#16a34a' : '#dc2626'};">৳${remaining}</h2>
+                        <span style="font-size: 12px; color: #6366f1; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">অবশিষ্ট ব্যালেন্স</span>
+                        <h2 style="margin: 4px 0 0 0; font-size: 26px; color: ${remaining >= 0 ? '#16a34a' : '#dc2626'};">৳${fmt(remaining)}</h2>
                     </div>
 
-                    <h3 style="color: #334155; margin-bottom: 12px; font-size: 16px;">👥 সদস্যদের বিস্তারিত রিপোর্ট (কে বেশি/কম দিয়েছে)</h3>
+                    <h3 style="color: #334155; margin-bottom: 12px; font-size: 16px;">👥 সদস্যদের বিস্তারিত রিপোর্ট</h3>
                     <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; border-radius: 10px; overflow: hidden;">
                         <thead>
                             <tr style="background-color: #4f46e5;">
@@ -665,7 +736,8 @@
                 filename: `Mess_Statement_${new Date().toISOString().split('T')[0]}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] }
             };
 
             html2pdf().set(opt).from(element).output('datauristring').then(function(pdfBase64) {
@@ -733,9 +805,9 @@
                     bazaarItems = [{name: '', amount: ''}]; render();
                     showToast(isAdmin ? 'খরচ সরাসরি অ্যাপ্রুভ হয়েছে!' : 'খরচ সেভ হয়েছে, পেন্ডিং আছে।');
                     
-                    const msg = `🔔 <b>নতুন খরচ যুক্ত</b>\n📋 খাত: ${type}\n💰 পরিমাণ: ৳${total}\n${shopper ? `👤 মারফত: ${shopper}\n` : ''}🔑 ID: #${expId.substring(expId.length-5)}`;
+                    const msg = `🔔 <b>নতুন খরচ যুক্ত</b>\n📋 খাত: ${type}\n💰 পরিমাণ: ৳${fmt(total)}\n${shopper ? `👤 মারফত: ${shopper}\n` : ''}🔑 ID: #${expId.substring(expId.length-5)}`;
                     if (!isAdmin) { await sendTelegramMsg(msg, expId); } else { await sendTelegramMsg(msg + '\n✅ (Admin Auto-Approved)'); }
-                    await logActivity('নতুন খরচ যুক্ত', `${type} খাতে ৳${total} এন্ট্রি হয়েছে।`, expId);
+                    await logActivity('নতুন খরচ যুক্ত', `${type} খাতে ৳${fmt(total)} এন্ট্রি হয়েছে।`, expId);
                 });
             }
 
@@ -903,7 +975,7 @@
                     const id = e.currentTarget.dataset.id;
                     if (supabase) await supabase.from('expenses').update({ status: 'approved' }).eq('id', id);
                     const item = data.expenses.find(x => x.id === id);
-                    if(item) { item.status = 'approved'; render(); showToast('অ্যাপ্রুভ করা হয়েছে!'); await logActivity('খরচ অ্যাপ্রুভাল', `${item.type} খাতের ৳${item.total} এন্ট্রি অ্যাপ্রুভ করা হয়েছে।`, id); }
+                    if(item) { item.status = 'approved'; render(); showToast('অ্যাপ্রুভ করা হয়েছে!'); await logActivity('খরচ অ্যাপ্রুভাল', `${item.type} খাতের ৳${fmt(item.total)} এন্ট্রি অ্যাপ্রুভ করা হয়েছে।`, id); }
                 }));
 
                 document.querySelectorAll('.del-exp-btn').forEach(btn => btn.addEventListener('click', (e) => {
@@ -921,7 +993,7 @@
                             if (supabase) await supabase.from('expenses').delete().eq('id', idToDel);
                             data.expenses = data.expenses.filter(x => x.id !== idToDel);
                             hideModal(); render(); showToast('খরচ মুছে ফেলা হয়েছে!', 'success');
-                            if(item) await logActivity('খরচ ডিলিট', `${item.type} খাতের ৳${item.total} এন্ট্রি মুছে ফেলা হয়েছে।`);
+                            if(item) await logActivity('খরচ ডিলিট', `${item.type} খাতের ৳${fmt(item.total)} এন্ট্রি মুছে ফেলা হয়েছে।`);
                         } else showToast('ভুল পাসওয়ার্ড!', 'error');
                     });
                 }));
@@ -1020,7 +1092,7 @@
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                             <div><label class="text-xs font-bold text-slate-500 mb-1 block">বন্ধ থাকা দিন</label><input type="number" id="em-a" value="${m.absentDays || 0}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none focus:border-indigo-500 transition-colors"></div>
-                            <div><label class="text-xs font-bold text-slate-500 mb-1 block">নির্ধারিত ফি (৳)</label><input type="number" id="em-fee" value="${m.custom_fee || ''}" placeholder="ডিফল্ট ৳${CONFIG.MONTHLY_FEE}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none focus:border-indigo-500 transition-colors"></div>
+                            <div><label class="text-xs font-bold text-slate-500 mb-1 block">নির্ধারিত ফি (৳)</label><input type="number" id="em-fee" value="${m.custom_fee || ''}" placeholder="ডিফল্ট ৳${fmt(CONFIG.MONTHLY_FEE)}" class="w-full p-3 bg-slate-800 border border-slate-700 text-sm rounded-xl outline-none focus:border-indigo-500 transition-colors"></div>
                         </div>
                     </div>
                     <div class="flex gap-3 mt-6"><button id="closeModal" class="flex-1 py-3 text-sm bg-slate-800 hover:bg-slate-700 rounded-xl font-bold transition-colors">বাতিল</button><button id="saveMember" class="flex-1 py-3 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all active:scale-95 shadow-md">আপডেট করুন</button></div>
@@ -1039,8 +1111,8 @@
                     hideModal(); render(); showToast('হিসাব ডাটাবেজে সেভ হয়েছে!');
 
                     if (newPaid !== oldPaid) {
-                        if (newPaid > oldPaid) await logActivity('টাকা জমা', `${m.name} নতুন করে ৳${newPaid - oldPaid} জমা দিয়েছে। (মোট: ৳${newPaid})`);
-                        else if (newPaid < oldPaid) await logActivity('হিসাব মাইনাস', `${m.name} এর জমা থেকে ৳${oldPaid - newPaid} কমানো হয়েছে।`);
+                        if (newPaid > oldPaid) await logActivity('টাকা জমা', `${m.name} নতুন করে ৳${fmt(newPaid - oldPaid)} জমা দিয়েছে। (মোট: ৳${fmt(newPaid)})`);
+                        else if (newPaid < oldPaid) await logActivity('হিসাব মাইনাস', `${m.name} এর জমা থেকে ৳${fmt(oldPaid - newPaid)} কমানো হয়েছে।`);
                     } else {
                         await logActivity('সদস্য হিসাব আপডেট', `${m.name} এর অন্যান্য প্রোফাইল ডেটা আপডেট করা হয়েছে।`);
                     }
