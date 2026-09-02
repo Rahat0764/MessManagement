@@ -174,11 +174,13 @@
             }
         };
 
-        const logActivity = async (action, details, specificId = null) => {
+        const logActivity = async (action, details, specificId = null, meta = null) => {
             const logId = specificId || generateRefId();
             const timestamp = new Date().toLocaleString('bn-BD');
 
             const newLog = { id: generateUniqueId(), log_id: logId, action, details, timestamp };
+            if (meta && meta.amount !== undefined) newLog.amount = meta.amount;
+            if (meta && meta.member !== undefined) newLog.member = meta.member;
             data.logs.unshift(newLog);
             if (supabase) {
                 const { error } = await supabase.from('activity_logs').insert([newLog]);
@@ -610,11 +612,16 @@
                 .filter(l => l.action === 'টাকা জমা' || l.action === 'হিসাব মাইনাস')
                 .map(l => {
                     const isMinus = l.action === 'হিসাব মাইনাস';
-                    const dep = l.details.match(/^(.*?) নতুন করে ৳([\d,]+\.?\d*) জমা দিয়েছে/);
-                    const min = l.details.match(/^(.*?) এর জমা থেকে ৳([\d,]+\.?\d*) কমানো হয়েছে/);
-                    const m = dep || min;
-                    const name = m ? m[1] : (l.details.split(' ')[0] || '—');
-                    const amt = m ? Number(m[2].replace(/,/g, '')) : 0;
+                    let name = l.member;
+                    let amt = (l.amount !== undefined && l.amount !== null) ? Number(l.amount) : null;
+                    if (name === undefined || name === null || amt === null || isNaN(amt)) {
+                        // Legacy row saved before structured fields existed — fall back to parsing the sentence.
+                        const dep = l.details.match(/^(.*?) নতুন করে ৳([\d,]+\.?\d*) জমা দিয়েছে/);
+                        const min = l.details.match(/^(.*?) এর জমা থেকে ৳([\d,]+\.?\d*) কমানো হয়েছে/);
+                        const m = dep || min;
+                        if (m) { name = m[1]; amt = Number(m[2].replace(/,/g, '')); }
+                        else { name = name || (l.details.split(' ')[0] || '—'); amt = amt || 0; }
+                    }
                     return { time: idTime(l.id) || Date.now(), name, amt, isMinus };
                 })
                 .sort((a, b) => b.time - a.time);
@@ -685,7 +692,7 @@
                         ${ledgerHtml}
                     </div>
                     <div style="margin-top: 10px; background: linear-gradient(135deg, #ecfdf5, #f0fdf4); border: 1px solid #bbf7d0; padding: 16px; border-radius: 12px; text-align: center;">
-                        <span style="font-size: 11px; color: #166534; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">সর্বমোট জমা</span>
+                        <span style="font-size: 11px; color: #166534; font-weight: 700;">সর্বমোট জমা</span>
                         <h2 style="margin: 4px 0 0 0; font-size: 24px; color: #166534;">৳${fmt(totalFund)}</h2>
                     </div>
                 </div>
@@ -696,7 +703,7 @@
                     ${expenseCardsHtml}
                     ${borrowCardsHtml}
                     <div style="margin-top: 10px; background: linear-gradient(135deg, #fff7ed, #fef2f2); border: 1px solid #fecaca; padding: 16px; border-radius: 12px; text-align: center;">
-                        <span style="font-size: 11px; color: #9a3412; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">সর্বমোট খরচ</span>
+                        <span style="font-size: 11px; color: #9a3412; font-weight: 700;">সর্বমোট খরচ</span>
                         <h2 style="margin: 4px 0 0 0; font-size: 24px; color: #9a3412;">৳${fmt(totalSpent)}</h2>
                     </div>
                 </div>
@@ -704,7 +711,7 @@
                 <!-- ===== PAGE 3: remaining balance + member report ===== -->
                 <div style="page-break-before: always; padding: 26px 28px;">
                     <div style="background: linear-gradient(135deg, #eef2ff, #f5f3ff); padding: 18px; border-radius: 14px; text-align: center; border: 1px solid #c7d2fe; margin-bottom: 26px;">
-                        <span style="font-size: 12px; color: #6366f1; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">অবশিষ্ট ব্যালেন্স</span>
+                        <span style="font-size: 12px; color: #6366f1; font-weight: 700;">অবশিষ্ট ব্যালেন্স</span>
                         <h2 style="margin: 4px 0 0 0; font-size: 26px; color: ${remaining >= 0 ? '#16a34a' : '#dc2626'};">৳${fmt(remaining)}</h2>
                     </div>
 
@@ -735,7 +742,7 @@
                 margin: 0,
                 filename: `Mess_Statement_${new Date().toISOString().split('T')[0]}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
+                html2canvas: { scale: 3, useCORS: true, letterRendering: true },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
                 pagebreak: { mode: ['css', 'legacy'] }
             };
@@ -1111,8 +1118,8 @@
                     hideModal(); render(); showToast('হিসাব ডাটাবেজে সেভ হয়েছে!');
 
                     if (newPaid !== oldPaid) {
-                        if (newPaid > oldPaid) await logActivity('টাকা জমা', `${m.name} নতুন করে ৳${fmt(newPaid - oldPaid)} জমা দিয়েছে। (মোট: ৳${fmt(newPaid)})`);
-                        else if (newPaid < oldPaid) await logActivity('হিসাব মাইনাস', `${m.name} এর জমা থেকে ৳${fmt(oldPaid - newPaid)} কমানো হয়েছে।`);
+                        if (newPaid > oldPaid) await logActivity('টাকা জমা', `${m.name} নতুন করে ৳${fmt(newPaid - oldPaid)} জমা দিয়েছে। (মোট: ৳${fmt(newPaid)})`, null, { amount: newPaid - oldPaid, member: m.name });
+                        else if (newPaid < oldPaid) await logActivity('হিসাব মাইনাস', `${m.name} এর জমা থেকে ৳${fmt(oldPaid - newPaid)} কমানো হয়েছে।`, null, { amount: oldPaid - newPaid, member: m.name });
                     } else {
                         await logActivity('সদস্য হিসাব আপডেট', `${m.name} এর অন্যান্য প্রোফাইল ডেটা আপডেট করা হয়েছে।`);
                     }
